@@ -1,0 +1,7 @@
+{
+  "recipes": [
+    { "id": "r1", "title": "Grilled Salmon", "description": "High protein, low carbs", "status": "published", "createdAt": "2024-05-01T12:00:00Z", "updatedAt": "2025-05-05T14:10:00Z", "author": "Chef A", "views": 1240, "saves": 210, "tags": ["keto", "gluten-free"] },
+    { "id": "r2", "title": "Vegan Buddha Bowl", "description": "Colorful and nutrient-dense", "status": "review", "createdAt": "2024-08-10T11:00:00Z", "updatedAt": "2025-05-02T09:30:00Z", "author": "Chef B", "views": 980, "saves": 160, "tags": ["vegan"] },
+    { "id": "r3", "title": "Chicken Stir Fry", "description": "Quick weeknight dinner", "status": "draft", "createdAt": "2025-04-10T10:00:00Z", "updatedAt": "2025-04-10T10:00:00Z", "author": "Admin", "views": 0, "saves": 0, "tags": ["gluten-free"] }
+  ]
+}
