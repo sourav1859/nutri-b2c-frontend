@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import type { Recipe } from "@/lib/types"
+import { apiGetSaved } from "@/lib/api";
 
 interface FavoritesContextType {
   favorites: string[]
@@ -68,18 +69,13 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   }
 
   const loadSavedRecipes = async () => {
-    try {
-      // Mock API call - in real app this would fetch from backend
-      const response = await fetch("/api/v1/recipes")
-      const allRecipes: Recipe[] = await response.json()
-
-      // Filter to only saved recipes
-      const saved = allRecipes.filter((recipe) => favorites.includes(recipe.id))
-      setSavedRecipes(saved)
-    } catch (error) {
-      console.error("Failed to load saved recipes:", error)
-      setSavedRecipes([])
-    }
+  try {
+    const saved = await apiGetSaved(); // already a Recipe[]
+    setSavedRecipes(saved);
+  } catch (error) {
+    console.error("Failed to load saved recipes:", error);
+    setSavedRecipes([]); // fail safe
+  }
   }
 
   return (

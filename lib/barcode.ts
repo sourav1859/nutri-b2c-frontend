@@ -22,50 +22,65 @@ export async function detectBarcodeSupport() {
   return engines
 }
 
-/** Lazy-load ZXing. Safe even if the package is not installed. */
+/** Lazy-load ZXing only at runtime (won't break build if missing). */
 export async function loadZxing() {
   try {
-    // @ts-ignore - package may not be installed; we handle at runtime
-    const ZX = await import("@zxing/library")
-    return ZX
+    const dyn = new Function("m", "return import(m)") as (m: string) => Promise<any>;
+    const ZX = await dyn("@zxing/library");
+    // ESM/CJS safe
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (ZX as any)?.default ?? ZX;
   } catch (e) {
-    console.warn("ZXing not available:", e)
-    return null
+    console.warn("ZXing not available:", e);
+    return null;
   }
 }
 
-/** Lazy-load quagga2. Safe even if the package is not installed. */
+/** Lazy-load Quagga only at runtime; try common forks. */
 export async function loadQuagga() {
   try {
-    // @ts-ignore - package may not be installed; we handle at runtime
-    const Q = await import("quagga2")
-    // some bundlers expose default
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (Q as any)?.default ?? Q
+    const dyn = new Function("m", "return import(m)") as (m: string) => Promise<any>;
+    for (const name of ["@ericblade/quagga2", "quagga2", "quagga"]) {
+      try {
+        const Q = await dyn(name);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (Q as any)?.default ?? Q;
+      } catch {}
+    }
+    console.warn("Quagga not available (no variant found).");
+    return null;
   } catch (e) {
-    console.warn("Quagga not available:", e)
-    return null
+    console.warn("Quagga dynamic import failed:", e);
+    return null;
   }
 }
 
 /** Lookup a product by UPC using the mock API, then fallback to local JSON. */
-export async function lookupProduct(upc: string): Promise<Product | null> {
+export async function lookupProduct(upc: string) {
   try {
-    const res = await fetch("/api/mock/barcodes")
+    // 1) the route that exists in your tree
+    const res = await fetch("/_mock/barcodes");
     if (res.ok) {
-      const data = await res.json()
-      return data[upc] || null
+      const data = await res.json();
+      return (data as Record<string, any>)[upc] ?? null;
     }
   } catch {}
   try {
-    // Fallback to the local mock JSON (works in dev and offline)
-    const offline = await import("../app/_mock/barcodes.json")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const map = (offline as any).default ?? offline
-    return map[upc] || null
+    // 2) alternate mock path (also present)
+    const r2 = await fetch("/mock-api/mock/barcodes");
+    if (r2.ok) {
+      const data = await r2.json();
+      return (data as Record<string, any>)[upc] ?? null;
+    }
+  } catch {}
+  try {
+    // 3) final fallback to the local JSON file
+    const offline = await import("../app/_mock/barcodes.json");
+    const map = (offline as any).default ?? offline;
+    return map[upc] ?? null;
   } catch (e) {
-    console.error("lookup error:", e)
-    return null
+    console.error("lookup error:", e);
+    return null;
   }
 }
 

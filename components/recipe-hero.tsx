@@ -13,7 +13,9 @@ interface RecipeHeroProps {
 }
 
 export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
-  const totalTime = recipe.prepTime + recipe.cookTime
+  const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0)
+  const title = recipe.title ?? "Untitled"
+  const src = recipe.imageUrl || "/placeholder.svg?height=720&width=1280&query=recipe%20hero"
 
   return (
     <div className="space-y-4">

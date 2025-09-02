@@ -11,29 +11,29 @@ import type { Difficulty } from "@/lib/types"
 
 export type RecipeCardProps = {
   id: string
-  title: string
+  title?: string
   imageUrl?: string
-  prepTime: number
-  cookTime: number
-  servings: number
-  difficulty: Difficulty
-  isSaved: boolean
+  prepTime?: number
+  cookTime?: number
+  servings?: number
+  difficulty?: Difficulty
+  isSaved?: boolean
   onSave: (id: string) => void
-  tags: string[]
+  tags?: string[]
   score?: number
 }
 
 export function RecipeCard({
   id,
-  title,
-  imageUrl,
-  prepTime,
-  cookTime,
-  servings,
-  difficulty,
-  isSaved,
+  title = "Untitled",
+  imageUrl = "/placeholder.svg",
+  prepTime = 0,
+  cookTime = 0,
+  servings = 1,
+  difficulty = "easy",
+  isSaved = false,
   onSave,
-  tags,
+  tags = [],
   score,
 }: RecipeCardProps) {
   const totalTime = prepTime + cookTime
