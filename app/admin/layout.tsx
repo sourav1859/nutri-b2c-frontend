@@ -1,0 +1,9 @@
+// app/admin/layout.tsx
+import type { ReactNode } from "react"
+import { RoleGuard } from "@/components/role-guard"
+import AdminGuard from "@/components/admin/admin-guard"
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  // Root layout already wraps with AppShell; this only gates the subtree
+  return <AdminGuard>{children}</AdminGuard>
+}

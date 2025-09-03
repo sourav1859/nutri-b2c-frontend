@@ -1,0 +1,26 @@
+{
+  "overview": {
+    "totalUsers": 12450,
+    "activeUsers": 3120,
+    "totalRecipes": 860,
+    "totalProducts": 4200,
+    "searchQueries": 58210,
+    "conversionRate": 3.4
+  },
+  "trends": {
+    "weeklyActiveUsers": [420, 560, 680, 720, 800, 910, 1020],
+    "weeklySearches": [1800, 1900, 2050, 2120, 2300, 2500, 2800],
+    "weeklyRecipeViews": [900, 980, 1100, 1200, 1400, 1500, 1700]
+  },
+  "top": {
+    "searches": [
+      { "query": "chicken", "count": 910 },
+      { "query": "vegan", "count": 820 },
+      { "query": "salmon", "count": 700 }
+    ],
+    "recipes": [
+      { "id": "r1", "title": "Grilled Salmon", "views": 1240 },
+      { "id": "r99", "title": "Avocado Toast", "views": 980 }
+    ]
+  }
+}

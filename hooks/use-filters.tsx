@@ -1,48 +1,89 @@
+// hooks/use-filters.tsx
 "use client"
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react"
+
+export type Tab = "recipes" | "products" | "customers" | "jobs"
 
 export type Filters = {
-  dietaryRestrictions: string[]
+  // Always present
+  q: string
+
+  // Home/FilterPanel fields
+  dietaryRestrictions: string[]   // aka diets
   allergens: string[]
-  calories: [number, number]
-  proteinMin: number
-  carbsMin: number
-  fatMin: number
-  maxTime: number
   cuisines: string[]
-  q?: string
+  calories: [number, number]      // [min, max] kcal
+  proteinMin: number              // g
+  carbsMin: number                // g
+  fatMin: number                  // g
+  fiberMin: number                // g
+  sugarMax: number                // g
+  sodiumMax: number               // mg
+  maxTime: number                 // minutes
+
+  // Optional / legacy
+  tab?: Tab
+  customerTag?: string | null
 }
 
-const defaultFilters: Filters = {
-  dietaryRestrictions: [],
-  allergens: [],
-  calories: [0, 1200],
-  proteinMin: 0,
-  carbsMin: 0,
-  fatMin: 0,
-  maxTime: 120,
-  cuisines: [],
-  q: "",
-}
+type Ctx = {
+  state: Filters
+  setState: Dispatch<SetStateAction<Filters>>
+  setQuery: (q: string) => void
+  setTab: (t: Tab) => void
+  reset: () => void
 
-type FiltersContextValue = {
+  // Back-compat aliases
   filters: Filters
-  setFilters: (next: Filters) => void
+  setFilters: Dispatch<SetStateAction<Filters>>
   resetFilters: () => void
 }
 
-const FiltersContext = createContext<FiltersContextValue | undefined>(undefined)
+const DEFAULTS: Filters = {
+  q: "",
+  dietaryRestrictions: [],
+  allergens: [],
+  cuisines: [],
+  calories: [0, 1200], // page treats >0 / <1200 as "active"
+  proteinMin: 0,
+  carbsMin: 0,
+  fatMin: 0,
+  fiberMin: 0,
+  sugarMax: 999,       // large default = not active
+  sodiumMax: 5000,     // large default = not active
+  maxTime: 120,        // page treats <120 as "active"
+  tab: "recipes",
+  customerTag: null,
+}
+
+const FiltersContext = createContext<Ctx | null>(null)
 
 export function FiltersProvider({ children }: { children: ReactNode }) {
-  const [filters, setFilters] = useState<Filters>(defaultFilters)
-  const value = useMemo(
+  const [state, setState] = useState<Filters>(DEFAULTS)
+
+  const value = useMemo<Ctx>(
     () => ({
-      filters,
-      setFilters,
-      resetFilters: () => setFilters(defaultFilters),
+      state,
+      setState,
+      setQuery: (q) => setState((s) => ({ ...s, q })),
+      setTab: (t) => setState((s) => ({ ...s, tab: t })),
+      reset: () => setState(DEFAULTS),
+
+      // aliases
+      filters: state,
+      setFilters: setState,
+      resetFilters: () => setState(DEFAULTS),
     }),
-    [filters],
+    [state]
   )
 
   return <FiltersContext.Provider value={value}>{children}</FiltersContext.Provider>

@@ -1,0 +1,10 @@
+[
+  { "name": "flour", "aliases": ["all-purpose flour","wheat flour","plain flour"], "calories": 364, "protein": 10.3, "carbs": 76.3, "fat": 0.98, "sodium": 2, "fiber": 2.7, "iron": 4.6 },
+  { "name": "sugar", "aliases": ["white sugar","granulated sugar","cane sugar"], "calories": 387, "protein": 0, "carbs": 100, "fat": 0, "sodium": 1 },
+  { "name": "rice", "aliases": ["white rice","cooked rice"], "calories": 130, "protein": 2.7, "carbs": 28, "fat": 0.3, "sodium": 1, "fiber": 0.4 },
+  { "name": "chicken breast", "aliases": ["chicken","boneless skinless chicken"], "calories": 165, "protein": 31, "carbs": 0, "fat": 3.6, "sodium": 74 },
+  { "name": "olive oil", "aliases": ["extra virgin olive oil","evoo"], "calories": 884, "protein": 0, "carbs": 0, "fat": 100, "sodium": 2 },
+  { "name": "milk", "aliases": ["whole milk"], "calories": 61, "protein": 3.2, "carbs": 4.8, "fat": 3.3, "sodium": 43, "calcium": 113 },
+  { "name": "butter", "aliases": ["unsalted butter","salted butter"], "calories": 717, "protein": 0.85, "carbs": 0.06, "fat": 81.11, "sodium": 11, "vitaminD": 60, "calcium": 24 },
+  { "name": "eggs", "aliases": ["egg","whole eggs","large eggs"], "calories": 155, "protein": 13.0, "carbs": 1.1, "fat": 10.6, "sodium": 124, "iron": 1.8 }
+]

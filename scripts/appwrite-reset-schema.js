@@ -1,0 +1,1 @@
+appwrite-reset-schema.js

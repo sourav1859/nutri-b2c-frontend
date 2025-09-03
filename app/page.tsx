@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { AppHeader } from "@/components/app-header"
-import { BottomNav } from "@/components/bottom-nav"
 import { RecipeCard } from "@/components/recipe-card"
 import { Button } from "@/components/ui/button"
 import { apiGetFeed, apiSearchRecipes, apiToggleSave } from "@/lib/api"
@@ -72,85 +70,74 @@ export default function HomePage() {
   }
 
   return (
-    <div className="relative pb-16 md:pb-0">
-      <AppHeader
-        onOpenSearch={() => {
-          setFiltersOpen(true)
-          setSearchOpen(true)
-        }}
-      />
+    <div className="px-4 py-6 space-y-6">
+      <section aria-label="Hero">
+        <h1 className="text-2xl sm:text-3xl font-bold">Welcome{user ? `, ${user.name}` : ""}!</h1>
+        <p className="text-muted-foreground">Discover recipes tailored to your dietary needs.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {QUICK_FILTERS.map((f) => (
+            <button
+              key={f.label}
+              className={cn(
+                "rounded-full border px-3 py-1 text-sm hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                filters.q === f.q ? "bg-accent" : undefined,
+              )}
+              onClick={() => handleQuickFilterClick(f)}
+            >
+              {f.label}
+            </button>
+          ))}
+          <Button variant="outline" size="sm" onClick={() => setFiltersOpen(true)}>
+            Filters
+          </Button>
+        </div>
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">Recommended for You</h2>
+        </div>
+      </section>
 
-      <main className="container px-4 py-4 space-y-6">
-        <section aria-label="Hero">
-          <h1 className="text-2xl sm:text-3xl font-bold">Welcome{user ? `, ${user.name}` : ""}!</h1>
-          <p className="text-muted-foreground">Discover recipes tailored to your dietary needs.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {QUICK_FILTERS.map((f) => (
-              <button
-                key={f.label}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-sm hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  filters.q === f.q ? "bg-accent" : undefined,
-                )}
-                onClick={() => handleQuickFilterClick(f)}
-              >
-                {f.label}
-              </button>
+      <section aria-label="Recipe grid">
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-60 animate-pulse rounded-lg bg-muted" />
             ))}
-            <Button variant="outline" size="sm" onClick={() => setFiltersOpen(true)}>
-              Filters
-            </Button>
           </div>
-          <div className="mt-4">
-            <h2 className="text-lg font-semibold">Recommended for You</h2>
+        ) : items.length === 0 ? (
+          <div className="rounded-lg border p-6 text-center">
+            <p className="mb-2 font-medium">No recipes found</p>
+            <p className="text-sm text-muted-foreground">Try adjusting your filters.</p>
+            <div className="mt-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  resetFilters()
+                }}
+              >
+                Reset Filters
+              </Button>
+            </div>
           </div>
-        </section>
-
-        <section aria-label="Recipe grid">
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-60 animate-pulse rounded-lg bg-muted" />
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="rounded-lg border p-6 text-center">
-              <p className="mb-2 font-medium">No recipes found</p>
-              <p className="text-sm text-muted-foreground">Try adjusting your filters.</p>
-              <div className="mt-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    resetFilters()
-                  }}
-                >
-                  Reset Filters
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {items.map((r) => (
-                <RecipeCard
-                  key={r.id}
-                  id={r.id}
-                  title={r.title}
-                  imageUrl={r.imageUrl}
-                  prepTime={r.prepTime}
-                  cookTime={r.cookTime}
-                  servings={r.servings}
-                  difficulty={r.difficulty}
-                  isSaved={!!r.isSaved}
-                  tags={r.tags}
-                  onSave={(id) => toggleSave.mutate(id)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-
-      <BottomNav />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((r) => (
+              <RecipeCard
+                key={r.id}
+                id={r.id}
+                title={r.title}
+                imageUrl={r.imageUrl}
+                prepTime={r.prepTime}
+                cookTime={r.cookTime}
+                servings={r.servings}
+                difficulty={r.difficulty}
+                isSaved={!!r.isSaved}
+                tags={r.tags}
+                onSave={(id) => toggleSave.mutate(id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       <FilterPanel
         open={filtersOpen}
@@ -162,6 +149,9 @@ export default function HomePage() {
           proteinMin: filters.proteinMin,
           carbsMin: filters.carbsMin,
           fatMin: filters.fatMin,
+          fiberMin: filters.fiberMin,      // ✅ new
+          sugarMax: filters.sugarMax,      // ✅ new
+          sodiumMax: filters.sodiumMax,    // ✅ new
           maxTime: filters.maxTime,
           cuisines: filters.cuisines,
           q: filters.q,

@@ -1,27 +1,27 @@
-import type React from "react"
-import "@/app/globals.css"
-import { Inter } from "next/font/google"
-import { ClientProviders } from "@/components/client-providers"
+// app/layout.tsx
+import type { Metadata } from "next"
+import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+import ClientProviders from "@/components/client-providers"
+import { AppShell } from "@/components/app-shell"
+import { ErrorBoundary } from "@/components/error-boundary"
 
-export const metadata = {
-  title: "NutriFind Recipes",
-  description: "Discover recipes tailored to your dietary needs",
-    generator: 'v0.dev'
+export const metadata: Metadata = {
+  title: "Nutri B2C",
+  description: "Nutrition application",
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ClientProviders>
-          <div className="min-h-[100dvh] bg-background text-foreground">{children}</div>
-        </ClientProviders>
+      <body>
+        <ErrorBoundary>
+          <ClientProviders>
+            <AppShell>
+              <div className="min-h-[100dvh] bg-background text-foreground">{children}</div>
+            </AppShell>
+          </ClientProviders>
+        </ErrorBoundary>
       </body>
     </html>
   )
