@@ -6,7 +6,11 @@ import type { Recipe } from "./types";
 
 // If NEXT_PUBLIC_API_BASE_URL is set, use it (direct to backend).
 // Otherwise call relative /api/v1/* so Next proxies handle it.
-const DIRECT_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/+$/, "");
+const RAW_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+// Ensure absolute URL w/ protocol; strip trailing slash
+const API_BASE = RAW_BASE
+  ? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `https://${RAW_BASE}`).replace(/\/+$/, "")
+  : "";
 type FetchOpts = Omit<RequestInit, "headers"> & { headers?: HeadersInit };
 let cachedJwt: { token: string; exp: number } | null = null;
 
@@ -51,7 +55,7 @@ async function getJwt(): Promise<string | null> {
 }
 
 async function authFetch(path: string, opts: FetchOpts = {}) {
-  const url = DIRECT_BASE ? `${DIRECT_BASE}${path}` : path; // '/api/v1/*' when proxied
+  const url = API_BASE ? `${API_BASE}${path}` : path; // '/api/v1/*' when proxied
   const jwt = await getJwt();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
