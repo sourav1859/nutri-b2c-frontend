@@ -1,7 +1,11 @@
 // lib/barcode.ts
 import type { Product } from "./types"
 
-export type BarcodeResult = { format: string; value: string }
+export type BarcodeResult = {
+  value: string;
+  format?: string;   // <- make optional
+  raw?: unknown;     // (keep if you added this earlier)
+};
 
 /** Detect which engines are available at runtime (native/zxing/quagga). */
 export async function detectBarcodeSupport() {

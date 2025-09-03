@@ -1,7 +1,7 @@
 // app/login/page.tsx
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
@@ -13,7 +13,17 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 
+// Top-level page only renders a Suspense boundary.
+// The component that calls useSearchParams() is inside it.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <LoginInner />
+    </Suspense>
+  )
+}
+
+function LoginInner() {
   const router = useRouter()
   const search = useSearchParams()
   const next = search?.get("next") || null
@@ -30,13 +40,8 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Create session with Appwrite
       await account.createEmailPasswordSession(email.trim(), password)
-
-      // Refresh context so isAdmin/health are up-to-date
       await refresh()
-
-      // Prefer admin console for admins when no explicit "next"
       const dest = next ?? (isAdmin() ? "/admin" : "/")
       router.replace(dest)
     } catch (err: any) {

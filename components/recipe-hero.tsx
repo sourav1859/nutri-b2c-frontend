@@ -16,14 +16,20 @@ export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
   const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0)
   const title = recipe.title ?? "Untitled"
   const src = recipe.imageUrl || "/placeholder.svg?height=720&width=1280&query=recipe%20hero"
+  const imageAlt = recipe.imageAlt ?? recipe.title ?? "Recipe image";
+  const rating = "rating" in recipe ? (recipe as any).rating ?? 0 : 0;
+  const reviewCount =
+    "reviewCount" in recipe ? (recipe as any).reviewCount ?? 0 : 0;
+  const tags = recipe.tags ?? [];
+  const cuisines = recipe.cuisines ?? [];
 
   return (
     <div className="space-y-4">
       {/* Hero Image */}
       <div className="relative w-full">
         <Image
-          src={recipe.imageUrl || "/placeholder.svg?height=720&width=1280&query=recipe%20hero"}
-          alt={recipe.title}
+          src={imageAlt || "/placeholder.svg?height=720&width=1280&query=recipe%20hero"}
+          alt={title}
           width={1280}
           height={720}
           className="w-full aspect-[16/9] object-cover rounded-lg"
@@ -58,20 +64,20 @@ export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
       </div>
 
       {/* Rating and Reviews */}
-      {recipe.rating && (
+      {rating && (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
                 className={`h-4 w-4 ${
-                  i < Math.floor(recipe.rating!) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                  i < Math.floor(rating!) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                 }`}
               />
             ))}
           </div>
-          <span className="font-medium">{recipe.rating.toFixed(1)}</span>
-          {recipe.reviewCount && <span className="text-muted-foreground">({recipe.reviewCount} reviews)</span>}
+          <span className="font-medium">{rating.toFixed(1)}</span>
+          {reviewCount && <span className="text-muted-foreground">({reviewCount} reviews)</span>}
         </div>
       )}
 
@@ -109,12 +115,12 @@ export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
 
       {/* Tags and Cuisines */}
       <div className="flex flex-wrap gap-2">
-        {recipe.tags.map((tag) => (
+        {tags.map((tag) => (
           <Badge key={tag} variant="secondary">
             {tag}
           </Badge>
         ))}
-        {recipe.cuisines.map((cuisine) => (
+        {cuisines.map((cuisine) => (
           <Badge key={cuisine} variant="outline">
             {cuisine}
           </Badge>

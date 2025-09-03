@@ -33,7 +33,7 @@ export default function RecipeDetailsPanel({
             <h3 className="font-medium">Summary</h3>
             <p className="text-sm text-muted-foreground">
               A {recipe.cuisine || ""} {recipe.course || "dish"} for {recipe.servings || 1} serving(s),
-              about {recipe.time?.prepMin ?? 0 + recipe.time?.cookMin ?? 0} minutes total.
+              about {(recipe.time?.prepMin ?? 0) + (recipe.time?.cookMin ?? 0)} minutes total.
               Fits your preferences.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">

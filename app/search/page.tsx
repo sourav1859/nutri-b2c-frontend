@@ -17,8 +17,10 @@ import { RecipeCard } from "@/components/recipe-card"
 import { apiSearchRecipes } from "@/lib/api"
 import { rank } from "@/lib/recommendation"
 import type { ScoredRecipe } from "@/lib/recommendation"
+import type { SortOption } from "@/lib/types"
 
-type SortOption = "time" | "calories" | "protein" | "rating" | "name"
+const toSortOption = (v: unknown): SortOption =>
+  v === "time" || v === "relevance" || v === "popular" ? (v as SortOption) : "time";
 
 const SORT_OPTIONS = [
   { value: "time" as const, label: "Cooking Time" },

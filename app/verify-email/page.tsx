@@ -1,7 +1,7 @@
 // app/verify-email/page.tsx
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { account } from "@/lib/appwrite"
@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Loader2, XCircle } from "lucide-react"
 
-export default function VerifyEmailPage() {
+function VerifyEmailClient() {
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
   const params = useSearchParams()
@@ -18,12 +18,15 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     const userId = params.get("userId")
     const secret = params.get("secret")
+
     if (!userId || !secret) {
       setStatus("success") // visiting directly or already verified
       return
     }
+
     setStatus("verifying")
-    account.updateVerification(userId, secret)
+    account
+      .updateVerification(userId, secret)
       .then(() => setStatus("success"))
       .catch((e) => {
         setError(e?.message || "Verification failed")
@@ -83,5 +86,25 @@ export default function VerifyEmailPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+              <CardTitle>Loading…</CardTitle>
+              <CardDescription>Preparing verification page.</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      }
+    >
+      <VerifyEmailClient />
+    </Suspense>
   )
 }

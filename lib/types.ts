@@ -3,6 +3,8 @@
 
 export type Difficulty = "easy" | "medium" | "hard";
 
+export type SortOption = "time" | "relevance" | "popular";
+
 /** Nutrition label values (per serving). */
 export interface Nutrition {
   calories?: number;
@@ -20,6 +22,8 @@ export interface Nutrition {
   calcium?: number;
   iron?: number;
   potassium?: number;
+  totalSugars?: number;   // sometimes provided as sugar/totalSugars
+  allergens?: string[];   // optional list like ["nuts","soy"]
 }
 
 /** Core recipe model (UI-friendly, backend-agnostic). */
@@ -60,6 +64,12 @@ export interface Recipe {
   fiber_g?: number;
   nutrition?: Nutrition;
 
+  rating?: number;
+  reviewCount?: number;
+  imageAlt?: string;
+  instructions?: string[];  // <-- add
+  steps?: string[];         // <-- optional alias for compatibility
+
   // Personalization & metadata
   isSaved?: boolean;
   reasons?: string[];
@@ -76,6 +86,67 @@ export interface Product {
   tags?: string[];
   allergens?: string[];
   nutrition?: Nutrition;
+}
+
+/** Base nutrition shape used across the app (per serving). */
+export interface Nutrition {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  saturatedFat?: number; // optional
+}
+
+/** Parsed ingredient line with optional match metadata. */
+export interface AnalyzedIngredient {
+  qty?: number;
+  unit?: string;
+  item: string;
+  matched?: boolean; // true if matched to an internal DB entry
+}
+
+/** Attributes inferred from parsed text/ingredients. */
+export interface InferredAttributes {
+  allergens?: string[];
+  diets?: string[];
+  cuisines?: string[];
+  taste?: string[]; // used by TasteProfileCard
+}
+
+/** Per-serving nutrition used by the analyzer; extends the base Nutrition. */
+export interface NutritionPerServing extends Nutrition {
+  potassium?: number;
+  iron?: number;
+  calcium?: number;
+  vitaminD?: number;
+}
+
+/** End-to-end result returned by analyzeRecipe(...). */
+export interface AnalyzeResult {
+  title?: string;
+  summary?: string;
+  servings?: number;
+
+  // Structured ingredients (after parsing)
+  ingredients?: AnalyzedIngredient[];
+
+  // Simple list of instruction steps
+  steps?: string[];
+
+  // Inferred tags like allergens/diets/cuisines/taste
+  inferred?: InferredAttributes;
+
+  // Per-serving nutrition; UI maps this to result.nutrition
+  nutritionPerServing?: NutritionPerServing;
+
+  // Optional suggestions shown in SuggestionsCard
+  suggestions?: string[];
+
+  // Optional freeform tags/categories
+  tags?: string[];
 }
 
 /** App-wide recommendation settings used across settings + ranking. */
@@ -96,8 +167,9 @@ export interface RecommendationSettings {
   // UX behavior flags
   behavior: {
     showScoreBadge?: boolean;
-    exploration?: number;       // 0..1 (optional)
-    shortTermFocus?: number;    // 0..1 (optional)
+    exploration?: number;
+    shortTermFocus?: number;
+    defaultSort?: SortOption;   // <-- add this line
   };
 
   // personalization knobs

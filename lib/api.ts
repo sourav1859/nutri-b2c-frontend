@@ -126,3 +126,70 @@ export async function apiGetSaved() {
   if (data && typeof data === "object") return Object.values(data); // key/value map fallback
   return [];
 }
+
+
+// ---------- Recipe Analyzer types ----------
+
+/** Base nutrition shape used across the app (per serving). */
+export interface Nutrition {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  /** optional saturated fat grams if you surface it */
+  saturatedFat?: number;
+}
+
+/** Parsed ingredient line with optional match metadata. */
+export interface AnalyzedIngredient {
+  qty?: number;
+  unit?: string;
+  item: string;
+  /** true if matched to an internal DB entry */
+  matched?: boolean;
+}
+
+/** Attributes inferred from the parsed text/ingredients. */
+export interface InferredAttributes {
+  allergens?: string[];
+  diets?: string[];
+  cuisines?: string[];
+  /** Taste tags list used by TasteProfileCard */
+  taste?: string[];
+}
+
+/** Per-serving nutrition used by the analyzer; extends the base Nutrition. */
+export interface NutritionPerServing extends Nutrition {
+  potassium?: number;
+  iron?: number;
+  calcium?: number;
+  vitaminD?: number;
+}
+
+/** End-to-end result returned by analyzeRecipe(...). */
+export interface AnalyzeResult {
+  title?: string;
+  summary?: string;
+  servings?: number;
+
+  /** Structured ingredients (after parsing). */
+  ingredients?: AnalyzedIngredient[];
+
+  /** Simple list of instruction steps, if available. */
+  steps?: string[];
+
+  /** Inferred tags like allergens/diets/cuisines/taste. */
+  inferred?: InferredAttributes;
+
+  /** Per-serving nutrition; UI maps this to result.nutrition. */
+  nutritionPerServing?: NutritionPerServing;
+
+  /** Optional suggestions shown in SuggestionsCard. */
+  suggestions?: string[];
+
+  /** Optional freeform tags/categories. */
+  tags?: string[];
+}

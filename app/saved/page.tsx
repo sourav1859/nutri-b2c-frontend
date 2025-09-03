@@ -5,10 +5,11 @@ import { apiGetSaved, apiToggleSave } from "@/lib/api"
 import { RecipeCard } from "@/components/recipe-card"
 import { AppHeader } from "@/components/app-header"
 import { BottomNav } from "@/components/bottom-nav"
+import type { Recipe } from "@/lib/types"
 
 export default function SavedPage() {
   const qc = useQueryClient()
-  const { data: items = [] } = useQuery({ queryKey: ["saved"], queryFn: apiGetSaved })
+  const { data: items = [] } = useQuery<Recipe[]>({ queryKey: ["saved"], queryFn: apiGetSaved })
   const toggleSave = useMutation({
     mutationFn: (id: string) => apiToggleSave(id),
     onSuccess: () => {
@@ -26,7 +27,7 @@ export default function SavedPage() {
           <p className="text-muted-foreground">You haven&apos;t saved any recipes yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((r) => (
+            {items.map((r: Recipe) => (
               <RecipeCard
                 key={r.id}
                 id={r.id}
@@ -37,7 +38,7 @@ export default function SavedPage() {
                 servings={r.servings}
                 difficulty={r.difficulty}
                 isSaved={!!r.isSaved}
-                tags={r.tags}
+                tags={r.tags ?? []}
                 onSave={(id) => toggleSave.mutate(id)}
               />
             ))}

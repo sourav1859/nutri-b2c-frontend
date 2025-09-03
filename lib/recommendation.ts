@@ -52,7 +52,14 @@ export function rank(recipes: Recipe[], settings: RecommendationSettings): Score
     const diversityScore = 1 // Will be calculated after initial scoring
 
     // Apply weights
-    const weights = settings.advanced.weights
+    const weights =
+    settings.advanced?.weights ?? {
+      health: 1,
+      time: 1,
+      popularity: 1,
+      personal: 1,
+      diversity: 1,
+    }
     const totalWeight = weights.health + weights.time + weights.popularity + weights.personal + weights.diversity
 
     const score =
@@ -127,17 +134,22 @@ function calculateTimeScore(totalTime: number, settings: RecommendationSettings)
 }
 
 function calculatePopularityScore(recipe: Recipe): number {
-  // Use a combination of difficulty (easier = more popular) and mock popularity
-  const difficultyScore = recipe.difficulty === "Easy" ? 1 : recipe.difficulty === "Medium" ? 0.7 : 0.4
-
+  // Normalize difficulty and default to "medium" if missing
+  const d = (recipe.difficulty ?? "medium").toString().toLowerCase();
+  // easier = more popular
+  const difficultyScore = d === "easy" ? 1 : d === "medium" ? 0.7 : 0.4;
   // Add some randomness to simulate popularity
-  const mockPopularity = Math.random() * 0.3 + 0.7
-
-  return (difficultyScore + mockPopularity) / 2
+  const mockPopularity = Math.random() * 0.3 + 0.7;
+  return (difficultyScore + mockPopularity) / 2;
 }
 
 function calculatePersonalScore(recipe: Recipe, settings: RecommendationSettings): number {
-  if (!settings.personalization.useHistory) return 0.5
+  const personalization = settings.personalization ?? {
+    diversityBias: 0,
+    avoidRecentlyViewedHours: 0,
+  }
+  const useHistory = (personalization.avoidRecentlyViewedHours ?? 0) > 0
+  if (!useHistory) return 0.5
 
   // Mock personalization based on recipe tags and user preferences
   let score = 0.5

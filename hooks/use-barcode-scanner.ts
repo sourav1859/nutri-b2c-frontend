@@ -1,10 +1,36 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import type { BarcodeResult, BarcodeEngine } from "@/lib/barcode"
+import type { BarcodeResult } from "@/lib/barcode"
 import { detectBarcodeSupport } from "@/lib/barcode"
 
 type Permission = "prompt" | "granted" | "denied"
+
+// Local union for engines (do NOT import this type)
+type BarcodeEngine = "native" | "zxing" | "none";
+
+// Accept anything the detector might return and normalize to one shape
+type SupportShape = { engine?: string; torch?: boolean } | string | string[] | null | undefined;
+
+function normalizeSupport(input: SupportShape): { engine: BarcodeEngine; torch: boolean } {
+  let engineStr = "none";
+  let torch = false;
+
+  if (Array.isArray(input)) {
+    engineStr = input[0] ?? "none";
+  } else if (typeof input === "string") {
+    engineStr = input;
+  } else if (input && typeof input === "object") {
+    const eng = (input as any).engine;
+    if (typeof eng === "string") engineStr = eng;
+    torch = Boolean((input as any).torch);
+  }
+
+  // Guard against unexpected strings
+  if (engineStr !== "native" && engineStr !== "zxing") engineStr = "none";
+
+  return { engine: engineStr as BarcodeEngine, torch };
+}
 
 type ScannerState = {
   permission: Permission
@@ -178,13 +204,32 @@ export function useBarcodeScanner() {
 
   // Initialize supported engines
   useEffect(() => {
-    detectBarcodeSupport().then((engines) => {
-      setState((prev) => ({
-        ...prev,
-        engine: engines[0] || null,
-      }))
-    })
-  }, [])
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Break the bad static typing by treating the result as unknown
+        const raw = (await detectBarcodeSupport()) as unknown;
+        const { engine, torch } = normalizeSupport(raw as SupportShape);
+
+        if (cancelled) return;
+
+        setState((prev) => ({
+          ...prev,
+          engine,
+          torchAvailable: torch,
+        }));
+      } catch {
+        if (!cancelled) {
+          setState((prev) => ({ ...prev, engine: "none" as BarcodeEngine, torchAvailable: false }));
+        }
+      }
+    })();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   return {
     ...state,

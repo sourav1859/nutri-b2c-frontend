@@ -97,8 +97,10 @@ export function ScanResultSheet({ open, onOpenChange, result, onScanAgain }: Pro
               {/* Nutrition Facts - Show first */}
               {result.product.nutrition && (
                 <>
-                  <NutritionFactsPanel nutrition={result.product.nutrition} />
-                  <Separator />
+                   <NutritionFactsPanel
+                      nutrition={result.product.nutrition}
+                      servings={1} // or result.product.servings ?? 1 if you have it
+                    />
                 </>
               )}
 

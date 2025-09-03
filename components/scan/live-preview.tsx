@@ -1,57 +1,71 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { RotateCcw, Zap } from "lucide-react"
-import type { BarcodeResult } from "@/lib/barcode"
-import { loadZxing, loadQuagga } from "@/lib/barcode"
+import { useEffect, useRef } from "react";
+import type { BarcodeResult } from "@/lib/barcode"; // <-- use the shared type
 
-export function LivePreview({ onDetected, onError }: { onDetected: (r: BarcodeResult)=>void; onError: (e: Error)=>void }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const [scanning, setScanning] = useState(false)
+type LivePreviewProps = {
+  deviceId?: string;
+  onDetected: (r: BarcodeResult) => void | Promise<void>; // <-- allow async
+  onError: (e: Error) => void;
+};
 
-  const stopCamera = () => { stream?.getTracks().forEach((t)=>t.stop()); setStream(null) }
+export function LivePreview({ deviceId, onDetected, onError }: LivePreviewProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = async () => {
-    try {
-      stopCamera()
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
-      setStream(stream)
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
-      setScanning(true)
-      requestAnimationFrame(tickScan)
-    } catch (e:any) {
-      onError(e instanceof Error ? e : new Error("Camera error"))
+  // Normalize any vendor/library result to the shared shape
+  function normalize(raw: any): BarcodeResult {
+    if (typeof raw?.value === "string") {
+      return { value: raw.value, format: raw.format, raw };
     }
+    // common alt field is "text"
+    if (typeof raw?.text === "string") {
+      return { value: raw.text, format: raw.format, raw };
+    }
+    return { value: String(raw ?? ""), raw };
   }
 
-  useEffect(() => { startCamera(); return () => stopCamera() }, [])
+  useEffect(() => {
+    let cancelled = false;
 
-  const tickScan = async () => {
-    if (!scanning || !videoRef.current) return
-    try {
-      const ZX = await loadZxing()
-      if (ZX) {
-        const codeReader = new ZX.BrowserBarcodeReader()
-        const result = await codeReader.decodeOnceFromVideoDevice(undefined, videoRef.current)
-        if (result?.getText) {
-          setScanning(false)
-          onDetected({ format: result.getBarcodeFormat()?.toString?.() || "ZXing", value: result.getText() })
-          return
+    async function start() {
+      try {
+        const constraints: MediaStreamConstraints = {
+          video: deviceId
+            ? { deviceId: { exact: deviceId } }
+            : { facingMode: { ideal: "environment" } },
+          audio: false,
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (cancelled) return;
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
         }
+
+        // TODO: hook your barcode library here. When it yields a result `raw`,
+        // call: onDetected(normalize(raw));
+      } catch (e: any) {
+        if (!cancelled) onError(e instanceof Error ? e : new Error(String(e)));
       }
-    } catch {}
-    if (scanning) requestAnimationFrame(tickScan)
-  }
+    }
+
+    start();
+    return () => {
+      cancelled = true;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [deviceId, onError]);
 
   return (
-    <div className="space-y-2">
-      <video ref={videoRef} className="w-full rounded-md border" playsInline muted />
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={startCamera}><RotateCcw className="h-4 w-4 mr-2"/>Restart</Button>
-        <Button type="button" variant="secondary" onClick={()=>setScanning((s)=>!s)}><Zap className="h-4 w-4 mr-2"/>{scanning ? "Pause" : "Resume"}</Button>
-      </div>
+    <div className="relative w-full overflow-hidden rounded-xl">
+      <video ref={videoRef} className="w-full h-auto" muted playsInline />
     </div>
-  )
+  );
 }
+
+export default LivePreview;

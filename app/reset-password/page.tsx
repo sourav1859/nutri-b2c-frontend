@@ -1,7 +1,7 @@
 // app/reset-password/page.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { account } from "@/lib/appwrite"
 import { useToast } from "@/hooks/use-toast"
@@ -11,7 +11,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff } from "lucide-react"
 
-export default function ResetPasswordPage() {
+// Wrap the reader of useSearchParams in Suspense
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
+      <ResetPasswordClient />
+    </Suspense>
+  )
+}
+
+function ResetPasswordClient() {
   const params = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
@@ -47,7 +56,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
     try {
-      // ✅ Appwrite SDK (current) expects 3 args: userId, secret, newPassword
+      // Appwrite: userId, secret, newPassword
       await account.updateRecovery(userId, secret, pw1)
       toast({ title: "Password updated", description: "You can now sign in with your new password." })
       router.replace("/login")

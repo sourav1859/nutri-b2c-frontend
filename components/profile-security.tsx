@@ -30,7 +30,7 @@ interface ProfileSecurityProps {
 }
 
 export function ProfileSecurity({ user }: ProfileSecurityProps) {
-  const { resetDemoState } = useUser()
+  const _userCtx = useUser()
   const { toast } = useToast()
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -66,12 +66,29 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
   }
 
   const handleResetDemo = () => {
-    resetDemoState()
-    toast({
-      title: "Demo state reset",
-      description: "All demo data has been cleared.",
-    })
-  }
+    try {
+      if (typeof window !== "undefined") {
+        // Blow away any locally cached “demo” state
+        localStorage.clear();
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.clear();
+        }
+      }
+      toast({
+        title: "Demo data reset",
+        description: "Local demo data has been cleared.",
+      });
+      // Optional: force a reload so the UI re-hydrates cleanly
+      // window.location.reload();
+    } catch (err) {
+      console.error("Failed to reset local demo data", err);
+      toast({
+        title: "Reset failed",
+        description: "We couldn’t clear local demo data.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">

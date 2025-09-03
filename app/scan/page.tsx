@@ -78,7 +78,7 @@ export default function ScanPage() {
       {scanner.permission === "granted" && !showResult ? (
         <div className="space-y-4">
           <LivePreview
-            deviceId={scanner.activeDeviceId || undefined}
+            // deviceId={scanner.activeDeviceId || undefined}
             onDetected={handleDetected}
             onError={(error) => console.error("Scan error:", error)}
           />

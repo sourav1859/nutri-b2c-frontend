@@ -125,6 +125,13 @@ export default function RecipeDetailPage() {
     )
   }
 
+  const steps: string[] =
+  Array.isArray((recipe as any)?.instructions)
+    ? (recipe as any).instructions
+    : Array.isArray((recipe as any)?.steps)
+    ? (recipe as any).steps
+    : [];
+
   return (
     <div className="container px-4 py-6 max-w-4xl">
       {/* Back Button */}
@@ -154,7 +161,7 @@ export default function RecipeDetailPage() {
       <StartCookingOverlay
         open={cookingOpen}
         onOpenChange={setCookingOpen}
-        steps={recipe.instructions}
+        steps={steps}
         recipeTitle={recipe.title}
       />
     </div>

@@ -14,22 +14,32 @@ import { Badge } from "@/components/ui/badge"
 import { ALL_ALLERGENS, ALL_CUISINES, ALL_DIETS } from "@/lib/data"
 import { CuisineMultiSelect } from "./cuisine-multi-select"
 
+// Required shape with defaults that match FiltersFormValues in lib/types.ts
+// --- Schema with defaults (defaults make INPUT keys optional, OUTPUT required) ---
 const schema = z.object({
   dietaryRestrictions: z.array(z.string()).default([]),
   allergens: z.array(z.string()).default([]),
-  calories: z.tuple([z.number().min(0), z.number().max(1200)]).default([0, 1200]),
-  proteinMin: z.number().min(0).max(100).default(0),
-  carbsMin: z.number().min(0).max(200).default(0),
-  fatMin: z.number().min(0).max(100).default(0),
-  fiberMin: z.number().min(0).max(50).default(0),
-  sugarMax: z.number().min(0).max(100).default(100),
-  sodiumMax: z.number().min(0).max(4000).default(4000),
-  maxTime: z.number().min(0).max(120).default(120),
+
+  // [min, max] calories
+  calories: z.tuple([z.number(), z.number()]).default([0, 1000]),
+
+  proteinMin: z.number().min(0).default(0),
+  carbsMin: z.number().min(0).default(0),
+  fatMin: z.number().min(0).default(0),
+  fiberMin: z.number().min(0).default(0),
+
+  sugarMax: z.number().min(0).default(60),
+  sodiumMax: z.number().min(0).default(2300),
+
+  maxTime: z.number().min(0).default(120),
+
   cuisines: z.array(z.string()).default([]),
-  q: z.string().optional().default(""),
+  q: z.string().default(""),
 })
 
-export type FiltersFormValues = z.infer<typeof schema>
+// IMPORTANT: use the schema's INPUT type for the form, OUTPUT type for apply()
+type FiltersFormInput = z.input<typeof schema>   // optionals allowed
+export type FiltersFormValues = z.output<typeof schema> // all fields present
 
 interface FilterPanelProps {
   open: boolean
@@ -40,15 +50,16 @@ interface FilterPanelProps {
 }
 
 export function FilterPanel({ open, onOpenChange, initialValues, onApply, onReset }: FilterPanelProps) {
-  const form = useForm<FiltersFormValues>({
+  const form = useForm<FiltersFormInput>({
     resolver: zodResolver(schema),
-    defaultValues: initialValues,
+    // provide full defaults (OUTPUT fits into INPUT just fine)
+    defaultValues: schema.parse(initialValues ?? {}),
     mode: "onChange",
   })
 
-  useEffect(() => {
-    form.reset(initialValues)
-  }, [open, initialValues])
+   useEffect(() => {
+    form.reset(schema.parse(initialValues ?? {}));
+  }, [open, initialValues, form]);
 
   function getActiveFiltersCount(): number {
     const values = form.getValues()
@@ -68,7 +79,7 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
   }
 
   function handleApply() {
-    const values = form.getValues()
+    const values = schema.parse(form.getValues())
     onApply(values)
     onOpenChange(false)
   }

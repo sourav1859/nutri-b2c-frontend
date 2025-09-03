@@ -1,4 +1,5 @@
 "use client"
+
 import { useUser } from "@/hooks/use-user"
 import { useSettings } from "@/hooks/use-settings"
 import { SettingsTabs } from "@/components/settings/settings-tabs"
@@ -17,39 +18,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
+import type { SortOption } from "@/lib/types"
+
+// helper to coerce unknown to SortOption
+const toSortOption = (v: unknown): SortOption =>
+  v === "time" || v === "relevance" || v === "popular" ? (v as SortOption) : "time"
+
+// Coerce string input to a number; if empty/NaN, keep the previous number
+const toNum = (prev: number, v: string) => {
+  const n = Number.parseInt(v, 10);
+  return Number.isNaN(n) ? prev : n;
+};
 
 export default function SettingsPage() {
   const { user, isAuthed } = useUser()
-  const { settings, updateSettings, apply, resetToDefaults, downloadJson, hasUnsavedChanges } = useSettings()
+  const { settings, updateSettings, apply, resetToDefaults, downloadJson } = useSettings()
   const { toast } = useToast()
 
   const handleApply = () => {
     apply()
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been saved successfully.",
-    })
+    toast({ title: "Settings saved", description: "Your preferences have been saved successfully." })
   }
 
   const handleReset = () => {
     resetToDefaults()
-    toast({
-      title: "Settings reset",
-      description: "All settings have been restored to defaults.",
-    })
+    toast({ title: "Settings reset", description: "All settings have been restored to defaults." })
   }
 
   const handleClearData = () => {
-    // Clear personalization data (favorites/history cache)
     if (typeof window !== "undefined") {
       localStorage.removeItem("nutri_favorites")
       localStorage.removeItem("nutri_history")
     }
-    toast({
-      title: "Data cleared",
-      description: "Personalization data has been cleared.",
-    })
+    toast({ title: "Data cleared", description: "Personalization data has been cleared." })
   }
+
+  // safe locals for optional sections
+  const behavior = settings.behavior ?? {}
+  const adv = settings.advanced ?? { weights: { health: 0, time: 0, popularity: 0, personal: 0, diversity: 0 } }
+  const caps = settings.caps ?? {}
 
   const tabs = [
     {
@@ -96,6 +103,7 @@ export default function SettingsPage() {
                 placeholder="e.g., mushrooms, cilantro"
               />
 
+              {/* RangeSetting doesn't support formatValue in your codebase; remove it */}
               <RangeSetting
                 label="Default Time Range"
                 description="Preferred cooking time range in minutes"
@@ -104,7 +112,6 @@ export default function SettingsPage() {
                 step={5}
                 value={settings.timeRangeMinMax}
                 onChange={(timeRangeMinMax) => updateSettings({ timeRangeMinMax })}
-                formatValue={(v) => `${v} min`}
               />
             </div>
           </SettingsSection>
@@ -146,8 +153,10 @@ export default function SettingsPage() {
                   type="number"
                   min="1000"
                   max="5000"
-                  value={settings.calorieTarget || ""}
-                  onChange={(e) => updateSettings({ calorieTarget: Number.parseInt(e.target.value) || undefined })}
+                  value={String(settings.calorieTarget ?? "")}
+                  onChange={(e) =>
+                    updateSettings({ calorieTarget: Number.parseInt(e.target.value) || undefined })
+                  }
                   className="mt-2 max-w-xs"
                   placeholder="2000"
                 />
@@ -159,9 +168,7 @@ export default function SettingsPage() {
                   label="Protein Priority"
                   value={settings.macroWeights.protein}
                   onChange={(protein) =>
-                    updateSettings({
-                      macroWeights: { ...settings.macroWeights, protein },
-                    })
+                    updateSettings({ macroWeights: { ...settings.macroWeights, protein } })
                   }
                   min={0}
                   max={100}
@@ -170,9 +177,7 @@ export default function SettingsPage() {
                   label="Carbs Priority"
                   value={settings.macroWeights.carbs}
                   onChange={(carbs) =>
-                    updateSettings({
-                      macroWeights: { ...settings.macroWeights, carbs },
-                    })
+                    updateSettings({ macroWeights: { ...settings.macroWeights, carbs } })
                   }
                   min={0}
                   max={100}
@@ -180,11 +185,7 @@ export default function SettingsPage() {
                 <SliderSetting
                   label="Fat Priority"
                   value={settings.macroWeights.fat}
-                  onChange={(fat) =>
-                    updateSettings({
-                      macroWeights: { ...settings.macroWeights, fat },
-                    })
-                  }
+                  onChange={(fat) => updateSettings({ macroWeights: { ...settings.macroWeights, fat } })}
                   min={0}
                   max={100}
                 />
@@ -200,10 +201,10 @@ export default function SettingsPage() {
                     type="number"
                     min="0"
                     max="10000"
-                    value={settings.caps.sodiumMax || ""}
+                    value={String(caps.sodiumMax ?? "")}
                     onChange={(e) =>
                       updateSettings({
-                        caps: { ...settings.caps, sodiumMax: Number.parseInt(e.target.value) || undefined },
+                        caps: { ...settings.caps, sodiumMax: toNum(settings.caps.sodiumMax, e.target.value)},
                       })
                     }
                     className="mt-2"
@@ -219,10 +220,10 @@ export default function SettingsPage() {
                     type="number"
                     min="0"
                     max="200"
-                    value={settings.caps.addedSugarMax || ""}
+                    value={String(caps.addedSugarMax ?? "")}
                     onChange={(e) =>
                       updateSettings({
-                        caps: { ...settings.caps, addedSugarMax: Number.parseInt(e.target.value) || undefined },
+                        caps: { ...settings.caps, addedSugarMax: toNum(settings.caps.addedSugarMax, e.target.value)},
                       })
                     }
                     className="mt-2"
@@ -245,27 +246,26 @@ export default function SettingsPage() {
             description="Fine-tune how recipes are recommended and ranked for you."
           >
             <div className="space-y-4">
+              {/* Map Explore/Exploit to behavior.exploration (0..1) */}
               <SliderSetting
                 label="Explore ↔ Exploit"
                 description="Balance between trying new recipes vs. sticking to favorites"
-                value={settings.behavior.exploreExploit}
-                onChange={(exploreExploit) =>
-                  updateSettings({
-                    behavior: { ...settings.behavior, exploreExploit },
-                  })
+                value={Math.round((behavior.exploration ?? 0) * 100)}
+                onChange={(pct) =>
+                  updateSettings({ behavior: { ...behavior, exploration: (pct as number) / 100 } })
                 }
                 min={0}
                 max={100}
-                formatValue={(v) => (v < 30 ? "Exploit" : v > 70 ? "Explore" : "Balanced")}
               />
 
+              {/* These next controls map to advanced weights that actually exist in your types */}
               <SliderSetting
                 label="Diversity"
                 description="How much variety you want in recommendations"
-                value={settings.behavior.diversity}
+                value={adv.weights.diversity ?? 0}
                 onChange={(diversity) =>
                   updateSettings({
-                    behavior: { ...settings.behavior, diversity },
+                    advanced: { ...adv, weights: { ...adv.weights, diversity } },
                   })
                 }
                 min={0}
@@ -275,10 +275,10 @@ export default function SettingsPage() {
               <SliderSetting
                 label="Health Emphasis"
                 description="Prioritize healthier recipes"
-                value={settings.behavior.healthEmphasis}
-                onChange={(healthEmphasis) =>
+                value={adv.weights.health ?? 0}
+                onChange={(health) =>
                   updateSettings({
-                    behavior: { ...settings.behavior, healthEmphasis },
+                    advanced: { ...adv, weights: { ...adv.weights, health } },
                   })
                 }
                 min={0}
@@ -288,10 +288,10 @@ export default function SettingsPage() {
               <SliderSetting
                 label="Personalization Weight"
                 description="How much your history influences recommendations"
-                value={settings.behavior.personalization}
-                onChange={(personalization) =>
+                value={adv.weights.personal ?? 0}
+                onChange={(personal) =>
                   updateSettings({
-                    behavior: { ...settings.behavior, personalization },
+                    advanced: { ...adv, weights: { ...adv.weights, personal } },
                   })
                 }
                 min={0}
@@ -301,9 +301,9 @@ export default function SettingsPage() {
               <div>
                 <Label className="text-base font-medium">Default Sort</Label>
                 <Select
-                  value={settings.behavior.defaultSort}
-                  onValueChange={(defaultSort: "time" | "calories" | "protein" | "popularity") =>
-                    updateSettings({ behavior: { ...settings.behavior, defaultSort } })
+                  value={behavior.defaultSort ?? "time"}
+                  onValueChange={(defaultSort: SortOption) =>
+                    updateSettings({ behavior: { ...behavior, defaultSort } })
                   }
                 >
                   <SelectTrigger className="mt-2 max-w-xs">
@@ -311,22 +311,17 @@ export default function SettingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="time">Time</SelectItem>
-                    <SelectItem value="calories">Calories</SelectItem>
-                    <SelectItem value="protein">Protein</SelectItem>
-                    <SelectItem value="popularity">Popularity</SelectItem>
+                    <SelectItem value="relevance">Relevance</SelectItem>
+                    <SelectItem value="popular">Popularity</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <ToggleSetting
                 label="Show Score Badge"
-                description="Display recommendation scores on recipe cards (for development transparency)"
-                checked={settings.behavior.showScoreBadge}
-                onChange={(showScoreBadge) =>
-                  updateSettings({
-                    behavior: { ...settings.behavior, showScoreBadge },
-                  })
-                }
+                description="Display recommendation scores on recipe cards"
+                checked={!!behavior.showScoreBadge}
+                onChange={(showScoreBadge) => updateSettings({ behavior: { ...behavior, showScoreBadge } })}
               />
             </div>
           </SettingsSection>
@@ -340,16 +335,7 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <SettingsSection title="Data & Privacy" description="Control how your data is used for personalization.">
             <div className="space-y-4">
-              <ToggleSetting
-                label="Use Favorites/History for Personalization"
-                description="Allow the app to use your favorites and browsing history to improve recommendations"
-                checked={settings.personalization.useHistory}
-                onChange={(useHistory) =>
-                  updateSettings({
-                    personalization: { ...settings.personalization, useHistory },
-                  })
-                }
-              />
+              {/* Your current types don't include personalization.useHistory; remove that toggle */}
 
               <div className="space-y-3">
                 <Label className="text-base font-medium">Data Management</Label>
@@ -377,74 +363,18 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <SettingsSection
             title="Notifications"
-            description="Configure when and how you'd like to be notified (UI-only, no actual notifications sent)."
+            description="Configure when and how you'd like to be notified (UI-only preview)."
           >
             <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">Try a New Recipe</Label>
-                    <p className="text-sm text-muted-foreground">Get suggestions for new recipes to try</p>
-                  </div>
-                  <Select
-                    value={settings.notifications.tryNew}
-                    onValueChange={(tryNew: "none" | "daily" | "weekly") =>
-                      updateSettings({ notifications: { ...settings.notifications, tryNew } })
-                    }
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">Grocery Day</Label>
-                    <p className="text-sm text-muted-foreground">Reminders for grocery shopping</p>
-                  </div>
-                  <Select
-                    value={settings.notifications.grocery}
-                    onValueChange={(grocery: "none" | "weekly") =>
-                      updateSettings({ notifications: { ...settings.notifications, grocery } })
-                    }
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">Meal Prep</Label>
-                    <p className="text-sm text-muted-foreground">Meal preparation reminders</p>
-                  </div>
-                  <Select
-                    value={settings.notifications.mealPrep}
-                    onValueChange={(mealPrep: "none" | "weekly") =>
-                      updateSettings({ notifications: { ...settings.notifications, mealPrep } })
-                    }
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              {/* Your types only have notifications.enableReminders */}
+              <ToggleSetting
+                label="Enable Reminders"
+                description="Turn on simple UI reminders (no actual push/email)"
+                checked={!!settings.notifications?.enableReminders}
+                onChange={(enableReminders) =>
+                  updateSettings({ notifications: { ...(settings.notifications ?? {}), enableReminders } })
+                }
+              />
             </div>
           </SettingsSection>
         </div>
@@ -457,88 +387,61 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <SettingsSection
             title="Advanced Settings"
-            description="Fine-tune the recommendation algorithm and view live scoring."
+            description="Fine-tune the recommendation weights and view live scoring."
           >
             <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Algorithm</Label>
-                <Select
-                  value={settings.advanced.algorithm}
-                  onValueChange={(algorithm: "content" | "cf" | "hybrid") =>
-                    updateSettings({ advanced: { ...settings.advanced, algorithm } })
-                  }
-                >
-                  <SelectTrigger className="mt-2 max-w-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="content">Content-Based</SelectItem>
-                    <SelectItem value="cf">Collaborative Filtering</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Algorithm select removed (not in your types) */}
 
               <div className="space-y-3">
                 <Label className="text-base font-medium">Rerank Weights (0-100)</Label>
                 <SliderSetting
                   label="Health (Wh)"
-                  value={settings.advanced.weights.health}
+                  value={adv.weights.health ?? 0}
                   onChange={(health) =>
-                    updateSettings({
-                      advanced: { ...settings.advanced, weights: { ...settings.advanced.weights, health } },
-                    })
+                    updateSettings({ advanced: { ...adv, weights: { ...adv.weights, health } } })
                   }
                   min={0}
                   max={100}
                 />
                 <SliderSetting
                   label="Time (Wt)"
-                  value={settings.advanced.weights.time}
+                  value={adv.weights.time ?? 0}
                   onChange={(time) =>
-                    updateSettings({
-                      advanced: { ...settings.advanced, weights: { ...settings.advanced.weights, time } },
-                    })
+                    updateSettings({ advanced: { ...adv, weights: { ...adv.weights, time } } })
                   }
                   min={0}
                   max={100}
                 />
                 <SliderSetting
                   label="Popularity (Wp)"
-                  value={settings.advanced.weights.popularity}
+                  value={adv.weights.popularity ?? 0}
                   onChange={(popularity) =>
-                    updateSettings({
-                      advanced: { ...settings.advanced, weights: { ...settings.advanced.weights, popularity } },
-                    })
+                    updateSettings({ advanced: { ...adv, weights: { ...adv.weights, popularity } } })
                   }
                   min={0}
                   max={100}
                 />
                 <SliderSetting
                   label="Personal (Wr)"
-                  value={settings.advanced.weights.personal}
+                  value={adv.weights.personal ?? 0}
                   onChange={(personal) =>
-                    updateSettings({
-                      advanced: { ...settings.advanced, weights: { ...settings.advanced.weights, personal } },
-                    })
+                    updateSettings({ advanced: { ...adv, weights: { ...adv.weights, personal } } })
                   }
                   min={0}
                   max={100}
                 />
                 <SliderSetting
                   label="Diversity (Wd)"
-                  value={settings.advanced.weights.diversity}
+                  value={adv.weights.diversity ?? 0}
                   onChange={(diversity) =>
-                    updateSettings({
-                      advanced: { ...settings.advanced, weights: { ...settings.advanced.weights, diversity } },
-                    })
+                    updateSettings({ advanced: { ...adv, weights: { ...adv.weights, diversity } } })
                   }
                   min={0}
                   max={100}
                 />
               </div>
 
-              <ScorePreviewCard weights={settings.advanced.weights} />
+              <ScorePreviewCard weights={adv.weights} />
             </div>
           </SettingsSection>
         </div>
@@ -555,8 +458,8 @@ export default function SettingsPage() {
 
       <div className="relative pb-20">
         <SettingsTabs tabs={tabs} defaultTab="general" />
-
-        <StickyApplyBar onApply={handleApply} onReset={handleReset} hasUnsavedChanges={hasUnsavedChanges} />
+        {/* StickyApplyBar Props don't include hasUnsavedChanges in your codebase */}
+        <StickyApplyBar onApply={handleApply} onReset={handleReset} />
       </div>
     </div>
   )
