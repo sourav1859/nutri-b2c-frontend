@@ -58,8 +58,8 @@ const DEFAULTS: Filters = {
   carbsMin: 0,
   fatMin: 0,
   fiberMin: 0,
-  sugarMax: 999,       // large default = not active
-  sodiumMax: 5000,     // large default = not active
+  sugarMax: 100,
+  sodiumMax: 4000,
   maxTime: 120,        // page treats <120 as "active"
   tab: "recipes",
   customerTag: null,

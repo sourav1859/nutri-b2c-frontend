@@ -120,21 +120,25 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((r) => (
-              <RecipeCard
-                key={r.id}
-                id={r.id}
-                title={r.title}
-                imageUrl={r.imageUrl}
-                prepTime={r.prepTime}
-                cookTime={r.cookTime}
-                servings={r.servings}
-                difficulty={r.difficulty}
-                isSaved={!!r.isSaved}
-                tags={r.tags}
-                onSave={(id) => toggleSave.mutate(id)}
-              />
-            ))}
+            {items.map((item, i) => {
+              const r = (item as any)?.recipe ?? item; // supports both feed shapes
+              return (
+                <RecipeCard
+                  key={`${r.id ?? 'no-id'}-${i}`}                   // i is defined
+                  id={r.id}
+                  title={r.title ?? r.name ?? 'Untitled'}
+                  imageUrl={r.image_url ?? r.imageUrl ?? '/placeholder.svg'}
+                  // If your card uses one time field, keep the best you have:
+                  prepTime={r.prep_time_minutes ?? r.time_minutes ?? r.total_time_minutes ?? 0}
+                  cookTime={r.cook_time_minutes ?? undefined}
+                  servings={r.servings ?? undefined}
+                  difficulty={String(r.difficulty ?? 'easy').toLowerCase() as any}
+                  isSaved={Boolean(r.is_saved ?? r.isSaved)}
+                  tags={r.diet_tags ?? r.tags ?? []}
+                  onSave={(id) => toggleSave.mutate(id)}
+                />
+              );
+            })}
           </div>
         )}
       </section>

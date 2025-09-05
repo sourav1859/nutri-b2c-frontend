@@ -42,7 +42,7 @@ export function RecipeCard({
 
   return (
     <Card className="overflow-hidden group focus-within:ring-2 focus-within:ring-ring">
-      <Link href={`/recipes/${id}`} className="block">
+      <Link href={`/recipes/${id}`} prefetch={false} className="block">
         <div className="relative aspect-[16/9] w-full overflow-hidden">
           <Image
             src={imageUrl || "/placeholder.svg?height=360&width=640&query=recipe%20image"}

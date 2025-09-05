@@ -11,6 +11,7 @@ import {
 } from "react"
 import { account, databases, teams } from "@/lib/appwrite"
 import { Query } from "appwrite"
+import { syncProfile, syncHealth } from "@/lib/api";
 
 type AppwriteUser = any
 type ProfileDoc = any
@@ -205,6 +206,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         dislikedIngredients:
           updates.dislikedIngredients !== undefined ? asArray(updates.dislikedIngredients) : undefined,
         onboardingComplete: true,
+        ...(updates.height
+          ? typeof updates.height === "string"
+            ? { height: updates.height }
+            : { height: `${updates.height.value} ${updates.height.unit}` }
+          : {}),
+        ...(updates.weight
+          ? typeof updates.weight === "string"
+            ? { weight: updates.weight }
+            : { weight: `${updates.weight.value} ${updates.weight.unit}` }
+          : {}),
       }
 
       // Strip undefined keys so we only send what the UI provided
@@ -213,10 +224,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         const updated = await databases.updateDocument(DB_ID, HEALTH_COLL, uid, payload)
         set({ health: updated })
+        void syncHealth(payload, uid)
         return
       } catch {
         const created = await databases.createDocument(DB_ID, HEALTH_COLL, uid, payload)
         set({ health: created })
+        void syncHealth(payload, uid) // initial write to Supabase on create
       }
     },
     [state.user],

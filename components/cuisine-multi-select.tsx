@@ -50,17 +50,20 @@ export function CuisineMultiSelect({
             const checked = value.includes(opt)
             return (
               <li key={opt}>
-                <button
-                  type="button"
-                  className="w-full flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => {
-                    onChange(checked ? value.filter((v) => v !== opt) : [...value, opt])
-                  }}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="w-full flex items-center gap-2 ..."
+                  onClick={() => onChange(checked ? value.filter((v) => v !== opt) : [...value, opt])}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onChange(checked ? value.filter((v) => v !== opt) : [...value, opt]);
+                  }}}
                 >
                   <Checkbox checked={checked} onCheckedChange={() => {}} aria-hidden="true" />
                   <span className="flex-1 text-left">{opt}</span>
                   {checked && <Check className="h-4 w-4" />}
-                </button>
+                </div>
               </li>
             )
           })}

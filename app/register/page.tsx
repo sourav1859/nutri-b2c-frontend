@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Mail, User as UserIcon } from "lucide-react"
+import { syncProfile } from "@/lib/api";
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID as string
 const PROFILE_COLL = process.env.NEXT_PUBLIC_APPWRITE_PROFILES_COLLECTION_ID as string
@@ -52,6 +53,12 @@ export default function RegisterPage() {
           displayName: me.name ?? name.trim(),
           image: "",
         })
+        await syncProfile({
+          displayName: me.name,
+          phone: me.phone ?? null,
+          country: "USA",
+          imageUrl: null,
+        }, me.$id);
       } catch { /* ignore in client */ }
 
       // 4) Refresh context & route

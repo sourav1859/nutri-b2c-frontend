@@ -10,245 +10,179 @@ import type { Recipe, Nutrition } from "@/lib/types"
 
 // ----- local types & helpers -----
 
-type IngredientObj = {
-  id: string
-  name: string
-  amount?: string
-  category?: string
+type Ingr = { amount: string; unit: string; name: string }
+
+function num(x: unknown, fallback = 0): number {
+  const n = Number(x as any)
+  return Number.isFinite(n) ? n : fallback
 }
 
-type ExtendedNutrition = Nutrition & {
-  totalSugars?: number
-  allergens?: string[]
-  transFat?: number
+// Accept both camelCase and backend snake_case keys and coerce to what NutritionFactsPanel expects
+function normalizeNutrition(recipe: any): Nutrition {
+  const n = (recipe?.nutrition ?? {}) as any
+  const r = recipe ?? ({} as any)
+
+  const calories = num(n.calories ?? r.calories)
+  const protein = num(n.protein ?? n.protein_g ?? r.protein_g ?? r.proteinG)
+  const carbs = num(n.carbs ?? n.carbs_g ?? r.carbs_g ?? r.carbsG)
+  const fat = num(n.fat ?? n.fat_g ?? r.fat_g ?? r.fatG)
+  const fiber = num(n.fiber ?? n.fiber_g ?? r.fiber_g ?? r.fiberG)
+  const sugar = num(n.sugar ?? n.sugar_g ?? r.sugar_g ?? r.sugarG)
+  const sodium = num(n.sodium ?? n.sodium_mg ?? r.sodium_mg ?? r.sodiumMg) // mg
+  const saturatedFat = num(
+    n.saturatedFat ?? n.saturated_fat ?? n.saturated_fat_g ?? r.saturated_fat_g ?? r.saturatedFatG
+  )
+  const transFat = num(
+    n.transFat ?? n.trans_fat ?? n.trans_fat_g ?? r.trans_fat_g ?? r.transFatG
+  )
+  const cholesterol = num(
+    n.cholesterol ?? n.cholesterol_mg ?? r.cholesterol_mg ?? r.cholesterolMg
+  ) // mg
+  const addedSugars = num(
+    n.addedSugars ?? n.added_sugars ?? n.added_sugars_g ?? r.added_sugars_g ?? r.addedSugarsG
+  )
+  const calcium = num(n.calcium ?? n.calcium_mg ?? r.calcium_mg ?? r.calciumMg) // mg
+  const iron = num(n.iron ?? n.iron_mg ?? r.iron_mg ?? r.ironMg) // mg
+  const potassium = num(n.potassium ?? n.potassium_mg ?? r.potassium_mg ?? r.potassiumMg) // mg
+  const vitaminD = num(
+    n.vitaminD ?? n.vitamin_d ?? n.vitamin_d_mcg ?? r.vitamin_d_mcg ?? r.vitaminDMcg
+  ) // mcg
+  const vitaminA = num(
+    n.vitaminA ?? n.vitamin_a ?? n.vitamin_a_mcg ?? r.vitamin_a_mcg ?? r.vitaminAMcg
+  ) // mcg
+  const vitaminC = num(
+    n.vitaminC ?? n.vitamin_c ?? n.vitamin_c_mg ?? r.vitamin_c_mg ?? r.vitaminCMg
+  ) // mg
+
+  return {
+    calories,
+    fat,
+    saturatedFat,
+    transFat,
+    cholesterol,
+    sodium,
+    carbs,
+    fiber,
+    sugar,
+    protein,
+    addedSugars,
+    vitaminD,
+    calcium,
+    iron,
+    potassium,
+    vitaminA,
+    vitaminC,
+  } as Nutrition
 }
 
-const n = (v?: number) => (typeof v === "number" ? v : 0)
+// ----- components -----
 
-function normalizeIngredients(recipe: any): IngredientObj[] {
-  const src: unknown =
-    recipe?.ingredients ??
-    recipe?.ingredientLines ?? // sometimes used by parsers
-    []
-
-  if (!Array.isArray(src)) return []
-
-  // strings -> objects
-  if (src.length > 0 && typeof src[0] === "string") {
-    return (src as string[]).map((line, i) => ({
-      id: `ing-${i}`,
-      name: line,
-      category: "Ingredients",
-    }))
-  }
-
-  // analyzer style: { item, qty, unit }
-  const asObjs = src as any[]
-  if (asObjs.length > 0 && "item" in asObjs[0]) {
-    return asObjs.map((g, i) => ({
-      id: g.id ?? `ing-${i}`,
-      name: String(g.item ?? "").trim(),
-      amount:
-        g.qty != null || g.unit
-          ? `${g.qty ?? ""}${g.unit ? ` ${g.unit}` : ""}`.trim()
-          : undefined,
-      category: g.category ?? "Ingredients",
-    }))
-  }
-
-  // already like { name, amount?, category? }
-  return asObjs.map((g, i) => ({
-    id: g.id ?? `ing-${i}`,
-    name: String(g.name ?? g.title ?? "").trim(),
-    amount: g.amount ? String(g.amount) : undefined,
-    category: g.category ?? "Ingredients",
-  }))
+function Ingredients({ ingredients = [] as any[] }) {
+  const toIngr = (i: any): Ingr => (typeof i === "string" ? { amount: "", unit: "", name: i } : i)
+  const items = ingredients.map(toIngr)
+  return (
+    <ol className="list-decimal pl-6 space-y-2 text-sm">
+      {items.map((ing, i) => (
+        <li key={i}>
+          {ing.amount} {ing.unit} {ing.name}
+        </li>
+      ))}
+    </ol>
+  )
 }
 
-function toExtendedNutrition(nut?: Nutrition): ExtendedNutrition {
-  const base: ExtendedNutrition = {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    saturatedFat: 0,
-    cholesterol: 0,
-    sodium: 0,
-    fiber: 0,
-    addedSugars: 0,
-    vitaminD: 0,
-    calcium: 0,
-    iron: 0,
-    potassium: 0,
-    // optional extensions
-    totalSugars: (n as any)?.sugar ?? 0,
-    allergens: [],
-    transFat: 0,
-  }
-  return { ...base, ...(nut ?? {}) }
-}
+export function RecipeTabs({ recipe }: { recipe: Recipe }) {
+  const [showMetric, setShowMetric] = useState(false)
 
-function toSteps(instructions: unknown): string[] {
-  if (Array.isArray(instructions)) return instructions.filter((s): s is string => typeof s === "string")
-  if (typeof instructions === "string") {
-    return instructions
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-  }
-  return []
-}
+  // Normalize nutrition (root cause of zeros on the details page)
+  const canonNutrition = useMemo(() => normalizeNutrition(recipe as any), [recipe])
 
-// ----- component -----
+  // Ensure a numeric servings value for NutritionFactsPanel prop
+  const servings = useMemo(
+    () => num((recipe as any)?.servings ?? (recipe as any)?.servings_count ?? 1, 1),
+    [recipe]
+  )
 
-interface RecipeTabsProps {
-  recipe: Recipe
-}
-
-export function RecipeTabs({ recipe }: RecipeTabsProps) {
-  const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({})
-
-  // normalize data defensively
-  const ingredients = useMemo(() => normalizeIngredients(recipe), [recipe])
-  const servings = recipe?.servings ?? 1
-  const nutrition = useMemo<ExtendedNutrition>(() => toExtendedNutrition((recipe as any).nutrition), [recipe])
-  const steps = useMemo(() => toSteps((recipe as any).instructions), [recipe])
-
-  // Group ingredients by category (typed)
-  const groupedIngredients = useMemo(() => {
-    return ingredients.reduce<Record<string, IngredientObj[]>>((acc, ingredient) => {
-      const category = ingredient.category || "Ingredients"
-      if (!acc[category]) acc[category] = []
-      acc[category].push(ingredient)
-      return acc
-    }, {})
-  }, [ingredients])
+  const instructions: string[] =
+    (Array.isArray((recipe as any)?.instructions) ? (recipe as any)?.instructions : []).filter(
+      Boolean
+    )
 
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
         <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
-        <TabsTrigger value="steps">Steps</TabsTrigger>
+        <TabsTrigger value="instructions">Instructions</TabsTrigger>
+        <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
+        <TabsTrigger value="tips" className="hidden lg:block">
+          Tips
+        </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="overview" className="mt-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Quick Nutrition Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Nutrition Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-center p-3 bg-muted/50 rounded">
-                  <div className="text-2xl font-bold text-primary">{n(nutrition.calories)}</div>
-                  <div className="text-muted-foreground">Calories</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded">
-                  <div className="text-2xl font-bold text-primary">{n(nutrition.protein)}g</div>
-                  <div className="text-muted-foreground">Protein</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded">
-                  <div className="text-2xl font-bold text-primary">{n(nutrition.carbs)}g</div>
-                  <div className="text-muted-foreground">Carbs</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded">
-                  <div className="text-2xl font-bold text-primary">{n(nutrition.fat)}g</div>
-                  <div className="text-muted-foreground">Fat</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Allergens */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Allergen Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!(nutrition.allergens && nutrition.allergens.length) ? (
-                <p className="text-muted-foreground">No common allergens detected.</p>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-destructive">Contains:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {nutrition.allergens!.map((allergen) => (
-                      <Badge key={allergen} variant="destructive" className="text-xs">
-                        {allergen}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="nutrition" className="mt-6">
-        <NutritionFactsPanel nutrition={nutrition} servings={servings} />
-      </TabsContent>
-
-      <TabsContent value="ingredients" className="mt-6">
-        {ingredients.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-sm text-muted-foreground">No ingredients listed.</CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {Object.entries(groupedIngredients).map(([category, items]) => (
-              <Card key={category}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{category}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {items.map((ingredient) => {
-                      const checked = !!checkedIngredients[ingredient.id]
-                      return (
-                        <li key={ingredient.id} className="flex items-start gap-3 p-2 rounded hover:bg-muted/50">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) =>
-                              setCheckedIngredients((prev) => ({ ...prev, [ingredient.id]: !!v }))
-                            }
-                            aria-label={`Mark ${ingredient.name} as acquired`}
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <div className={checked ? "line-through text-muted-foreground" : "font-medium"}>
-                              {ingredient.name}
-                            </div>
-                            {ingredient.amount && (
-                              <div className="text-sm text-muted-foreground">{ingredient.amount}</div>
-                            )}
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </TabsContent>
-
-      <TabsContent value="steps" className="mt-6">
+      <TabsContent value="overview">
         <Card>
           <CardHeader>
-            <CardTitle>Cooking Instructions</CardTitle>
+            <CardTitle>At a glance</CardTitle>
           </CardHeader>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="text-muted-foreground">Servings</div>
+              <div className="font-medium">{(recipe as any)?.servings ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Total time</div>
+              <div className="font-medium">
+                {(recipe as any)?.total_time_minutes ??
+                  (recipe as any)?.totalTimeMinutes ??
+                  0}{" "}
+                min
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Difficulty</div>
+              <div className="font-medium capitalize">{(recipe as any)?.difficulty ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Calories / serving</div>
+              <div className="font-medium">{canonNutrition.calories}</div>
+            </div>
+          </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="ingredients">
         <Card>
+          <CardHeader className="flex-row items-center justify-between gap-4">
+            <CardTitle>Ingredients</CardTitle>
+            <div className="flex items-center gap-2 text-sm">
+              <Checkbox
+                id="metric"
+                checked={showMetric}
+                onCheckedChange={(v) => setShowMetric(Boolean(v))}
+              />
+              <label htmlFor="metric" className="text-muted-foreground">
+                Show metric
+              </label>
+            </div>
+          </CardHeader>
           <CardContent>
-            {steps.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No instructions provided.</p>
+            <Ingredients ingredients={(recipe as any)?.ingredients ?? []} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="instructions">
+        <Card>
+          <CardHeader>
+            <CardTitle>Instructions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {instructions.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No instructions provided.</p>
             ) : (
-              <ol className="space-y-4">
-                {steps.map((step, idx) => (
+              <ol className="relative max-w-3xl mx-auto space-y-6">
+                {instructions.map((step, idx) => (
                   <li key={idx} className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                       {idx + 1}
@@ -260,6 +194,42 @@ export function RecipeTabs({ recipe }: RecipeTabsProps) {
                 ))}
               </ol>
             )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="nutrition">
+        <Card>
+          <CardHeader>
+            <CardTitle>Nutrition facts</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardContent>
+            {/* FIX: pass required `servings` prop */}
+            <NutritionFactsPanel nutrition={canonNutrition} servings={servings} />
+            <div className="mt-2 flex flex-wrap gap-2">
+              {((recipe as any)?.diet_tags ?? (recipe as any)?.dietTags ?? []).map(
+                (tag: string) => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
+                  </Badge>
+                )
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="tips">
+        <Card>
+          <CardHeader>
+            <CardTitle>Chef tips</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Try swapping or adding your favorite herbs and spices. Adjust seasoning to taste.
+            </p>
           </CardContent>
         </Card>
       </TabsContent>

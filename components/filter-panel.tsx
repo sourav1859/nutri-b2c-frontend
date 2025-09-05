@@ -28,9 +28,8 @@ const schema = z.object({
   fatMin: z.number().min(0).default(0),
   fiberMin: z.number().min(0).default(0),
 
-  sugarMax: z.number().min(0).default(60),
-  sodiumMax: z.number().min(0).default(2300),
-
+  sugarMax: z.number().min(0).default(100),
+  sodiumMax: z.number().min(0).default(4000),
   maxTime: z.number().min(0).default(120),
 
   cuisines: z.array(z.string()).default([]),

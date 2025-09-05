@@ -12,6 +12,7 @@ interface RecipeHeroProps {
   onShare: () => void
 }
 
+
 export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
   const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0)
   const title = recipe.title ?? "Untitled"
@@ -23,13 +24,29 @@ export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
   const tags = recipe.tags ?? [];
   const cuisines = recipe.cuisines ?? [];
 
+  const prepMinutes =
+  Number(
+    (recipe as any)?.prepTimeMinutes ??
+    (recipe as any)?.prep_time_minutes ??
+    (recipe as any)?.prep_minutes ??
+    0
+  );
+
+const cookMinutes =
+  Number(
+    (recipe as any)?.cookTimeMinutes ??
+    (recipe as any)?.cook_time_minutes ??
+    (recipe as any)?.cook_minutes ??
+    0
+  );
+
   return (
     <div className="space-y-4">
       {/* Hero Image */}
       <div className="relative w-full">
         <Image
-          src={imageAlt || "/placeholder.svg?height=720&width=1280&query=recipe%20hero"}
-          alt={title}
+          src={src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/") ? src : "/placeholder.svg"}
+          alt={imageAlt ?? title}
           width={1280}
           height={720}
           className="w-full aspect-[16/9] object-cover rounded-lg"
@@ -86,14 +103,14 @@ export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
         <div className="flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <div>
-            <div className="font-medium">Prep Time</div>
+            <div className="font-medium">{prepMinutes} Prep Time</div>
             <div className="text-muted-foreground">{recipe.prepTime}m</div>
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <div>
-            <div className="font-medium">Cook Time</div>
+            <div className="font-medium">{cookMinutes} Cook Time</div>
             <div className="text-muted-foreground">{recipe.cookTime}m</div>
           </div>
         </div>
