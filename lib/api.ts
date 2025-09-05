@@ -14,25 +14,6 @@ const API_BASE = RAW_BASE
 type FetchOpts = Omit<RequestInit, "headers"> & { headers?: HeadersInit };
 let cachedJwt: { token: string; exp: number } | null = null;
 
-type SearchInput =
-  | string
-  | {
-      q?: string
-      sort?: string
-      filters?: {
-        dietaryRestrictions?: string[]   // -> diets
-        allergens?: string[]             // -> allergens_exclude
-        cuisines?: string[]              // -> cuisines
-        calories?: [number, number]      // -> cal_min, cal_max
-        proteinMin?: number              // -> protein_min
-        carbsMin?: number                // -> carbs_min
-        fatMin?: number                  // -> fat_min
-        fiberMin?: number                // -> fiber_min
-        sugarMax?: number                // -> sugar_max
-        sodiumMax?: number               // -> sodium_max
-        maxTime?: number                 // -> time_max
-      }
-    }
 
 const toInt = (v: any): number | null =>
   v === null || v === undefined || v === '' ? null : Number.parseInt(String(v), 10);
@@ -108,25 +89,50 @@ export type UserRecipe = {
   updated_at?: string;
 };
 
+
+
 function makeIdemKey() {
   try { return crypto.randomUUID(); } catch { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 }
 
+function uniqStr(arr: any[]): string[] {
+  return Array.from(new Set((arr ?? []).filter(Boolean).map(String)));
+}
+
 function toRecipe(raw: any): Recipe {
-  const r = raw?.recipe ?? raw
+  const r = raw?.recipe ?? raw;
+
+  const imageUrl =
+    r.image_url ?? r.imageUrl ?? null;
+
+  const prep =
+    r.prep_time_minutes ?? r.prepTimeMinutes ?? 0;
+
+  const cook =
+    r.cook_time_minutes ?? r.cookTimeMinutes ?? 0;
+
+  const total =
+    (r.time_minutes ?? r.total_time_minutes ?? r.totalTimeMinutes ?? (prep + cook)) ?? 0;
+
+  const tags = uniqStr([
+    ...(r.tags ?? []),
+    ...(r.diet_tags ?? r.dietTags ?? []),
+    ...(r.flags ?? r.flag_tags ?? []),
+    ...(r.cuisines ?? []),
+  ]);
+
   return {
     id: r.id,
     title: r.title ?? "Untitled",
-    imageUrl: r.image_url ?? r.imageUrl ?? null,
-    // keep what your Recipe type expects; here are common ones:
-    time_minutes: r.time_minutes ?? r.total_time_minutes ?? r.prep_time_minutes ?? 0,
-    prepTime: r.prep_time_minutes ?? r.time_minutes ?? r.total_time_minutes ?? 0,
-    cookTime: r.cook_time_minutes ?? undefined,
+    imageUrl,
+    time_minutes: total,
+    prepTime: prep || total,         // keep card’s total time non-zero
+    cookTime: cook || 0,
     servings: r.servings ?? undefined,
-    difficulty: (String(r.difficulty ?? "easy").toLowerCase()),
-    isSaved: Boolean(r.is_saved ?? r.isSaved),
-    tags: r.diet_tags ?? r.tags ?? [],
-  } as Recipe
+    difficulty: String(r.difficulty ?? "easy").toLowerCase() as any,
+    isSaved: Boolean(r.is_saved ?? r.isSaved ?? raw?.isSaved),
+    tags,
+  } as Recipe;
 }
 
 async function getJwt(): Promise<string | null> {
@@ -153,24 +159,30 @@ export async function authFetch(path: string, opts: FetchOpts = {}) {
   const DIRECT_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/+$/, "");
   const url = DIRECT_BASE ? `${DIRECT_BASE}${path}` : path;
   const jwt = await getJwt();
+  const method = (opts.method ?? "GET").toUpperCase();
 
-  const method = (opts.method ?? 'GET').toUpperCase();
-  // BEFORE you call fetch:
-  const base = new Headers(opts?.headers as HeadersInit);
+  // Normalize/dedupe headers
+  const headers = new Headers();
+  if (opts.headers) new Headers(opts.headers).forEach((v, k) => headers.set(k, v));
+  if (opts.body && !headers.has("content-type")) headers.set("content-type", "application/json");
+  if (jwt) headers.set("x-appwrite-jwt", jwt);
+  if (method !== "GET") headers.set("idempotency-key", makeIdemKey());
 
-  // Only set content-type if caller didn't already set it AND a body exists
-  if (opts?.body && !base.has("content-type")) {
-    base.set("content-type", "application/json");
+  try {
+    const res = await fetch(url, {
+      ...opts,
+      headers,
+      cache: "no-store",
+      credentials: "omit",
+      mode: "cors",
+    });
+    if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Request failed ${res.status}`);
+    return res;
+  } catch (err) {
+    // Surface network/CORS issues in the console for easier debugging
+    console.error("authFetch network error", { url, method, headers: [...headers.entries()] }, err);
+    throw err;
   }
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(opts.headers || {}),
-    ...(jwt ? { "X-Appwrite-JWT": jwt } : {}),
-    ...(method !== 'GET' ? { "Idempotency-Key": makeIdemKey() } : {}),
-  };
-  const res = await fetch(url, { ...opts, headers, cache: "no-store", credentials: "omit" });
-  if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Request failed ${res.status}`);
-  return res;
 }
 
 /* ---- Public ---- */
@@ -282,17 +294,21 @@ export async function apiGetRecipe(id: string) {
 export async function apiToggleSave(id: string): Promise<{ isSaved: boolean }> {
   return (await authFetch(`/api/v1/recipes/${id}/save`, { method: "POST" })).json();
 }
-export async function apiGetSaved() {
-  const res = await authFetch(`/api/v1/me/saved`);
-  const data = await res.json().catch(() => null);
 
-  // Coerce to a Recipe[]
-  if (Array.isArray(data)) return data;
-  if (data && Array.isArray(data.recipes)) return data.recipes;
-  if (data && Array.isArray(data.items)) return data.items;
-  if (data && Array.isArray(data.data)) return data.data;
-  if (data && typeof data === "object") return Object.values(data); // key/value map fallback
-  return [];
+export async function apiGetSaved(): Promise<Recipe[]> {
+  const res = await authFetch(`/api/v1/me/saved`);
+  const payload = await res.json().catch(() => null);
+
+  // Normalize various shapes (array, {recipes}, {items}, {data}, keyed map)
+  const list =
+    Array.isArray(payload) ? payload :
+    Array.isArray(payload?.recipes) ? payload.recipes :
+    Array.isArray(payload?.items) ? payload.items :
+    Array.isArray(payload?.data) ? payload.data :
+    (payload && typeof payload === "object") ? Object.values(payload) :
+    [];
+
+  return list.map(toRecipe);
 }
 
 
@@ -418,10 +434,18 @@ export async function fetchMyRecipes(appwriteUserId: string, { limit = 50, offse
 export async function createRecipe(appwriteUserId: string, recipe: Partial<UserRecipe>) {
   const res = await authFetch(`/api/v1/user-recipes`, {
     method: "POST",
-    headers: { "x-appwrite-user-id": appwriteUserId, "content-type": "application/json" },
+    headers: { "x-appwrite-user-id": appwriteUserId, },
     body: JSON.stringify({ recipe }),
   });
   return res.json() as Promise<UserRecipe>;
+}
+
+export async function apiGetUserRecipe(appwriteUserId: string, id: string) {
+  const res = await authFetch(`/api/v1/user-recipes/${id}`, {
+    method: "GET",
+    headers: { "x-appwrite-user-id": appwriteUserId },
+  });
+  return res.json(); // returns UserRecipe row
 }
 
 export async function fetchRecipe(appwriteUserId: string, id: string) {
@@ -435,7 +459,7 @@ export async function fetchRecipe(appwriteUserId: string, id: string) {
 export async function updateRecipe(appwriteUserId: string, id: string, patch: Partial<UserRecipe>) {
   const res = await authFetch(`/api/v1/user-recipes/${id}`, {
     method: "PATCH",
-    headers: { "x-appwrite-user-id": appwriteUserId, "content-type": "application/json" },
+    headers: { "x-appwrite-user-id": appwriteUserId,},
     body: JSON.stringify({ recipe: patch }),
   });
   return res.json() as Promise<UserRecipe>;

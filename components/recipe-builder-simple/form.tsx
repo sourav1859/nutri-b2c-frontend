@@ -11,6 +11,21 @@ import { Textarea } from "@/components/ui/textarea";
  * Embedded preview panel (merged from components/recipe/recipe-details-panel.tsx)
  * UI only — no backend calls here. Actual creation happens via parent onSubmit.
  */
+
+const genId = () =>
+  globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+
+// Show placeholder in the UI but treat empty as 0 when submitting
+const toZero = (v: number | "") => (v === "" ? 0 : Number(v) || 0);
+
+// Numeric input change helper: keep "" if cleared, else Number(...)
+const onNumChange =
+  (set: React.Dispatch<React.SetStateAction<number | "">>) =>
+  (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    set(val === "" ? "" : Number(val));
+  };
+
 function RecipeDetailsPanel({
   recipe,
   onBack,
@@ -191,18 +206,25 @@ export default function RecipeCreateForm({
   const [allergens, setAllergens] = React.useState<string[]>(
     initial?.allergens ?? []
   );
-  const [ingredients, setIngredients] = React.useState<IngredientRow[]>(
-    (initial?.ingredients as IngredientRow[] | undefined) ?? [
-      {
-        id:
-          globalThis.crypto?.randomUUID?.() ??
-          Math.random().toString(36).slice(2),
-        qty: "",
-        unit: "",
-        item: "",
-      },
-    ]
-  );
+  const seedIngredients: IngredientRow[] =
+  Array.isArray(initial?.ingredients) && initial!.ingredients.length
+    ? (initial!.ingredients as any[]).map((r: any) => ({
+        id: genId(),                      // ensure a stable key
+        qty: r?.qty ?? "",
+        unit: r?.unit ?? "",
+        item: r?.item ?? "",
+        note: r?.note ?? "",
+      }))
+    : [
+        {
+          id: genId(),
+          qty: "",
+          unit: "",
+          item: "",
+        },
+      ];
+
+const [ingredients, setIngredients] = React.useState<IngredientRow[]>(seedIngredients);
   const [steps, setSteps] = React.useState<string[]>(
     Array.isArray(initial?.instructions)
       ? (initial!.instructions as any[]).map((x: any) =>
@@ -212,23 +234,13 @@ export default function RecipeCreateForm({
   );
 
   // ---- nutrition (editable, with placeholders) ----
-  const [calories, setCalories] = React.useState<number | "">(
-    initial?.calories ?? 0
-  );
-  const [protein, setProtein] = React.useState<number | "">(
-    initial?.protein_g ?? 0
-  );
-  const [carbs, setCarbs] = React.useState<number | "">(
-    initial?.carbs_g ?? 0
-  );
-  const [fat, setFat] = React.useState<number | "">(initial?.fat_g ?? 0);
-  const [fiber, setFiber] = React.useState<number | "">(initial?.fiber_g ?? 0);
-  const [sodium, setSodium] = React.useState<number | "">(
-    initial?.sodium_mg ?? 0
-  );
-  const [satFat, setSatFat] = React.useState<number | "">(
-    initial?.saturated_fat_g ?? 0
-  );
+  const [calories, setCalories] = React.useState<number | "">(initial?.calories ?? "");
+  const [protein,  setProtein ] = React.useState<number | "">(initial?.protein_g ?? "");
+  const [carbs,    setCarbs   ] = React.useState<number | "">(initial?.carbs_g   ?? "");
+  const [fat,      setFat     ] = React.useState<number | "">(initial?.fat_g     ?? "");
+  const [fiber,    setFiber   ] = React.useState<number | "">(initial?.fiber_g   ?? "");
+  const [sodium,   setSodium  ] = React.useState<number | "">(initial?.sodium_mg ?? "");
+  const [satFat,   setSatFat  ] = React.useState<number | "">(initial?.saturated_fat_g ?? "");
 
   // ---- preview wiring ----
   const [mode, setMode] = React.useState<"edit" | "preview">("edit");
@@ -281,13 +293,13 @@ export default function RecipeCreateForm({
       notes: null,
       visibility: "private",
       // nutrition (optional)
-      calories: toNumberOrNull(calories),
-      protein_g: toNumberOrNull(protein),
-      carbs_g: toNumberOrNull(carbs),
-      fat_g: toNumberOrNull(fat),
-      fiber_g: toNumberOrNull(fiber),
-      sodium_mg: toNumberOrNull(sodium),
-      saturated_fat_g: toNumberOrNull(satFat),
+      calories:          toZero(calories),
+      protein_g:         toZero(protein),
+      carbs_g:           toZero(carbs),
+      fat_g:             toZero(fat),
+      fiber_g:           toZero(fiber),
+      sodium_mg:         toZero(sodium),
+      saturated_fat_g:   toZero(satFat),
     };
   }
 

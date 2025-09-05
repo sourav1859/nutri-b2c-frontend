@@ -11,8 +11,9 @@ import type { Difficulty } from "@/lib/types"
 
 export type RecipeCardProps = {
   id: string
+  href?: string 
   title?: string
-  imageUrl?: string
+  imageUrl?: string | null
   prepTime?: number
   cookTime?: number
   servings?: number
@@ -35,14 +36,16 @@ export function RecipeCard({
   onSave,
   tags = [],
   score,
+  href,
 }: RecipeCardProps) {
   const totalTime = prepTime + cookTime
   const shown = tags.slice(0, 3)
   const rest = tags.length - shown.length
+  const linkHref = href ?? `/recipes/${id}`;
 
   return (
     <Card className="overflow-hidden group focus-within:ring-2 focus-within:ring-ring">
-      <Link href={`/recipes/${id}`} prefetch={false} className="block">
+      <Link href={linkHref} prefetch={false} className="block">
         <div className="relative aspect-[16/9] w-full overflow-hidden">
           <Image
             src={imageUrl || "/placeholder.svg?height=360&width=640&query=recipe%20image"}
