@@ -471,3 +471,22 @@ export async function deleteRecipe(appwriteUserId: string, id: string) {
     headers: { "x-appwrite-user-id": appwriteUserId },
   });
 }
+
+// ---------- Recently Viewed / History ----------
+
+export async function apiLogHistoryView(recipeId: string) {
+  // logs a 'viewed' event
+  await authFetch(`/api/v1/me/history`, {
+    method: "POST",
+    // headers: { "content-type": "application/json" },
+    body: JSON.stringify({ recipeId, event: "viewed" }),
+  });
+}
+
+export async function apiGetRecentlyViewed(limit = 20) {
+  const res = await authFetch(`/api/v1/me/recently-viewed?limit=${limit}`, {
+    method: "GET",
+  });
+  // backend returns rows like { history: {...}, recipe: {...} }
+  return res.json() as Promise<Array<{ history: any; recipe: any }>>;
+}

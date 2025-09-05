@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react"
 import type { Recipe } from "@/lib/types"
+import { apiGetRecentlyViewed, apiLogHistoryView } from "@/lib/api";
 
 interface HistoryItem {
   recipeId: string
@@ -15,6 +16,7 @@ interface HistoryContextType {
   clearHistory: () => void
   loadRecentRecipes: () => Promise<void>
 }
+
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined)
 
@@ -44,29 +46,30 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   const historyRef = useRef(history)
   historyRef.current = history
 
-  const loadRecentRecipes = useCallback(async () => {
+  const loadRecentRecipes = async () => {
     try {
-      // Mock API call - in real app this would fetch from backend
-      const response = await fetch("/api/v1/recipes")
-      const allRecipes: Recipe[] = await response.json()
-
-      const currentHistory = historyRef.current
-
-      // Get unique recipe IDs from history (most recent first)
-      const recentIds = [...new Set(currentHistory.map((item) => item.recipeId))]
-
-      // Filter and sort recipes by history order
-      const recent = recentIds
-        .map((id) => allRecipes.find((recipe) => recipe.id === id))
-        .filter((recipe): recipe is Recipe => recipe !== undefined)
-        .slice(0, 20) // Limit to 20 most recent
-
-      setRecentRecipes(recent)
-    } catch (error) {
-      console.error("Failed to load recent recipes:", error)
-      setRecentRecipes([])
+      const rows = await apiGetRecentlyViewed(20);
+      const mapped = rows.map(({ recipe }) => ({
+        id: recipe.id,
+        title: recipe.title ?? "Untitled",
+        imageUrl: recipe.image_url ?? (Array.isArray(recipe.images) ? recipe.images[0] : null),
+        prepTime: Number(recipe.prep_time_minutes ?? 0),
+        cookTime: Number(recipe.cook_time_minutes ?? 0),
+        servings: Number(recipe.servings ?? 1),
+        difficulty: (recipe.difficulty ?? "easy") as any,
+        tags: [
+          ...(Array.isArray(recipe.tags) ? recipe.tags : []),
+          ...(Array.isArray(recipe.diet_tags) ? recipe.diet_tags : []),
+          ...(Array.isArray(recipe.cuisines) ? recipe.cuisines : []),
+          ...(Array.isArray(recipe.flags) ? recipe.flags : []),
+        ],
+      }));
+      setRecentRecipes(mapped);
+    } catch (e) {
+      console.error("Failed to load recent recipes:", e);
+      setRecentRecipes([]);
     }
-  }, []) // Remove history dependency to prevent infinite loop
+  };
 
   useEffect(() => {
     if (history.length > 0) {
@@ -76,17 +79,20 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     }
   }, [history.length]) // Only depend on history.length to avoid infinite loop
 
-  const addToHistory = useCallback((recipeId: string) => {
-    const now = new Date().toISOString()
-    setHistory((prev) => {
-      // Remove existing entry for this recipe
-      const filtered = prev.filter((item) => item.recipeId !== recipeId)
-      // Add to beginning of array
-      const updated = [{ recipeId, viewedAt: now }, ...filtered]
-      // Keep only last 50 items
-      return updated.slice(0, 50)
-    })
-  }, []) // Memoize addToHistory to prevent unnecessary re-renders
+const addToHistory = useCallback((entry: string | { id?: string }) => {
+  const id = typeof entry === "string" ? entry : entry?.id;
+  if (!id) return;
+
+  // Optimistic local update
+  const now = new Date().toISOString();
+  setHistory(prev => {
+    const filtered = prev.filter(i => i.recipeId !== id);
+    return [{ recipeId: id, viewedAt: now }, ...filtered].slice(0, 50);
+  });
+
+  // Fire-and-forget server log (string only)
+  void apiLogHistoryView(id);
+}, []);
 
   const clearHistory = useCallback(() => {
     setHistory([])
@@ -95,17 +101,17 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
 
   return (
     <HistoryContext.Provider
-      value={{
-        history,
-        recentRecipes,
-        addToHistory,
-        clearHistory,
-        loadRecentRecipes,
-      }}
-    >
-      {children}
-    </HistoryContext.Provider>
-  )
+    value={{
+      history,
+      recentRecipes,
+      addToHistory,         // <— only the original name
+      clearHistory,
+      loadRecentRecipes,
+    }}
+  >
+    {children}
+  </HistoryContext.Provider>
+      )
 }
 
 export function useHistory() {

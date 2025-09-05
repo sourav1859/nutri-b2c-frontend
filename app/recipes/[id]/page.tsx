@@ -39,7 +39,8 @@ export default function RecipeDetailPage() {
     favoritesCtx?.remove ?? favoritesCtx?.removeFavorite ?? favoritesCtx?.unsave ?? null
 
   // History add method can be named differently across drafts; try common variants
-  const addHistoryEntryFn: any =
+  const addHistoryEntryFn =
+    (typeof historyCtx?.addToHistory === "function" && historyCtx.addToHistory) ||  // <-- add this first
     (typeof historyCtx?.add === "function" && historyCtx.add) ||
     (typeof historyCtx?.push === "function" && historyCtx.push) ||
     (typeof historyCtx?.addEntry === "function" && historyCtx.addEntry) ||
@@ -60,13 +61,14 @@ export default function RecipeDetailPage() {
   const addedToHistoryRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (recipe && (recipe as any).id && addedToHistoryRef.current !== (recipe as any).id) {
+    if (recipe?.id && historyCtx?.addToHistory) {
+      historyCtx.addToHistory(recipe.id);
       const imageUrl =
         (recipe as any)?.image_url ??
         (Array.isArray((recipe as any)?.images) && (recipe as any).images.length
           ? (recipe as any).images[0]
           : null)
-
+      
       // Only attempt call if we truly have a function
       if (typeof addHistoryEntryFn === "function") {
         const entry = {
