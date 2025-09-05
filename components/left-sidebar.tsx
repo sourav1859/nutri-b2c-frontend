@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Plus,
   FlaskConical,
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/hooks/use-user"
@@ -32,6 +33,7 @@ const userNav = [
   { label: "Search", href: "/search", icon: Search },
   { label: "Scan", href: "/scan", icon: QrCode },
   { label: "Create Recipe", href: "/create", icon: Plus },
+  { label: "My Recipes", href: "/my-recipes", icon: BookOpen },
   { label: "Recipe Analyzer", href: "/recipe-analyzer", icon: FlaskConical },
   { label: "Favorites", href: "/favorites", icon: Heart },
   { label: "History", href: "/history", icon: History },

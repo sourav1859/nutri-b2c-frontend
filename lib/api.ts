@@ -73,6 +73,41 @@ type NormalizedRecipe = {
   published_at?: string | null;
 };
 
+export type Ingredient = { qty?: number | string; unit?: string; name: string };
+export type Instruction = string;
+
+export type UserRecipe = {
+  id: string;
+  owner_user_id: string;
+  title: string;
+  description?: string | null;
+  image_url?: string | null;
+  servings?: number | null;
+  total_time_minutes?: number | null;
+  prep_time_minutes?: number | null;
+  cook_time_minutes?: number | null;
+  calories?: number | null;
+  protein_g?: number | null;
+  carbs_g?: number | null;
+  fat_g?: number | null;
+  fiber_g?: number | null;
+  sugar_g?: number | null;
+  sodium_mg?: number | null;
+  saturated_fat_g?: number | null;
+  difficulty?: string | null;
+  meal_type?: string | null;
+  cuisines?: string[] | null;
+  diet_tags?: string[] | null;
+  allergens?: string[] | null;
+  flags?: string[] | null;
+  ingredients?: Ingredient[] | null;
+  instructions?: Instruction[] | null;
+  notes?: string | null;
+  visibility?: "private" | "public" | "unlisted" | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 function makeIdemKey() {
   try { return crypto.randomUUID(); } catch { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 }
@@ -114,7 +149,7 @@ async function getJwt(): Promise<string | null> {
   }
 }
 
-async function authFetch(path: string, opts: FetchOpts = {}) {
+export async function authFetch(path: string, opts: FetchOpts = {}) {
   const DIRECT_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/+$/, "");
   const url = DIRECT_BASE ? `${DIRECT_BASE}${path}` : path;
   const jwt = await getJwt();
@@ -365,5 +400,50 @@ export async function syncHealth(
   return authFetch("/api/v1/sync/health", {
     method: "POST",
     body: JSON.stringify({ appwriteUserId, health }),
+  });
+}
+
+
+// ---------- User Recipes ----------
+// These call /api/v1/user-recipes* endpoints which proxy to Supabase.
+export async function fetchMyRecipes(appwriteUserId: string, { limit = 50, offset = 0 } = {}) {
+  const url = `/api/v1/user-recipes?limit=${limit}&offset=${offset}`;
+  const res = await authFetch(url, {
+    method: "GET",
+    headers: { "x-appwrite-user-id": appwriteUserId }, // helps backend resolve id if no JWT
+  });
+  return res.json() as Promise<{ items: UserRecipe[]; limit: number; offset: number }>;
+}
+
+export async function createRecipe(appwriteUserId: string, recipe: Partial<UserRecipe>) {
+  const res = await authFetch(`/api/v1/user-recipes`, {
+    method: "POST",
+    headers: { "x-appwrite-user-id": appwriteUserId, "content-type": "application/json" },
+    body: JSON.stringify({ recipe }),
+  });
+  return res.json() as Promise<UserRecipe>;
+}
+
+export async function fetchRecipe(appwriteUserId: string, id: string) {
+  const res = await authFetch(`/api/v1/user-recipes/${id}`, {
+    method: "GET",
+    headers: { "x-appwrite-user-id": appwriteUserId },
+  });
+  return res.json() as Promise<UserRecipe>;
+}
+
+export async function updateRecipe(appwriteUserId: string, id: string, patch: Partial<UserRecipe>) {
+  const res = await authFetch(`/api/v1/user-recipes/${id}`, {
+    method: "PATCH",
+    headers: { "x-appwrite-user-id": appwriteUserId, "content-type": "application/json" },
+    body: JSON.stringify({ recipe: patch }),
+  });
+  return res.json() as Promise<UserRecipe>;
+}
+
+export async function deleteRecipe(appwriteUserId: string, id: string) {
+  await authFetch(`/api/v1/user-recipes/${id}`, {
+    method: "DELETE",
+    headers: { "x-appwrite-user-id": appwriteUserId },
   });
 }
