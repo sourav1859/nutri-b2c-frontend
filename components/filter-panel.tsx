@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
-import { ALL_ALLERGENS, ALL_CUISINES, ALL_DIETS } from "@/lib/data"
+import { ALL_ALLERGENS, ALL_CUISINES, ALL_DIETS, ALL_MAJOR_CONDITIONS } from "@/lib/data"
 import { CuisineMultiSelect } from "./cuisine-multi-select"
 
 // Required shape with defaults that match FiltersFormValues in lib/types.ts
@@ -33,6 +33,7 @@ const schema = z.object({
   maxTime: z.number().min(0).default(120),
 
   cuisines: z.array(z.string()).default([]),
+  majorConditions: z.array(z.string()).default([]),
   q: z.string().default(""),
 })
 
@@ -195,6 +196,30 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
                         }}
                       />
                       <span className="text-sm">{allergen}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </section>
+            {/* Major Health Conditions */}
+            <section className="space-y-2">
+              <Label>Major Health Conditions</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {ALL_MAJOR_CONDITIONS.map((cond) => {
+                  const checked = (form.watch("majorConditions") || []).includes(cond)
+                  return (
+                    <label key={cond} className="flex items-center gap-2 rounded border px-2 py-1">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const curr = form.getValues("majorConditions") || []
+                          form.setValue(
+                            "majorConditions",
+                            v ? [...curr, cond] : curr.filter((x: string) => x !== cond)
+                          )
+                        }}
+                      />
+                      <span className="text-sm">{cond}</span>
                     </label>
                   )
                 })}

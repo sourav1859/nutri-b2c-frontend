@@ -24,6 +24,7 @@ import { Shield, Key, Trash2, RotateCcw, AlertTriangle } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/lib/mock-auth"
+import { apiDeleteAccount } from "@/lib/api"
 
 interface ProfileSecurityProps {
   user: User
@@ -57,12 +58,16 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
     setConfirmPassword("")
   }
 
-  const handleDeleteAccount = () => {
-    toast({
-      title: "Account deletion requested",
-      description: "In a real app, this would initiate account deletion.",
-      variant: "destructive",
-    })
+  const handleDeleteAccount = async () => {
+    try {
+      await apiDeleteAccount();                  // DELETE /api/v1/me/account
+      // optionally sign out if you have a hook:
+      // await signOut();
+      window.location.href = "/login";           // or your landing page
+    } catch (e) {
+      console.error(e)
+      toast({ variant: "destructive", description: "Failed to delete account. Please try again." })
+    }
   }
 
   const handleResetDemo = () => {

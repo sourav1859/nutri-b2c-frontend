@@ -21,6 +21,7 @@ export type Filters = {
   dietaryRestrictions: string[]   // aka diets
   allergens: string[]
   cuisines: string[]
+  majorConditions: string[];   // New field for major health conditions
   calories: [number, number]      // [min, max] kcal
   proteinMin: number              // g
   carbsMin: number                // g
@@ -53,6 +54,7 @@ const DEFAULTS: Filters = {
   dietaryRestrictions: [],
   allergens: [],
   cuisines: [],
+  majorConditions: [],
   calories: [0, 1200], // page treats >0 / <1200 as "active"
   proteinMin: 0,
   carbsMin: 0,

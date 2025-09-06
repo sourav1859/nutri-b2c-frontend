@@ -67,6 +67,7 @@ export default function SearchPage() {
       filters.dietaryRestrictions.length > 0 ||
       filters.allergens.length > 0 ||
       filters.cuisines.length > 0 ||
+      filters.majorConditions.length > 0 ||
       filters.calories[0] > 0 ||
       filters.calories[1] < 1200 ||
       filters.proteinMin > 0 ||

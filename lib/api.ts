@@ -173,7 +173,7 @@ export async function authFetch(path: string, opts: FetchOpts = {}) {
       ...opts,
       headers,
       cache: "no-store",
-      credentials: "omit",
+      credentials: "include",
       mode: "cors",
     });
     if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Request failed ${res.status}`);
@@ -249,6 +249,7 @@ export async function apiSearchRecipes(args: { q?: string; filters: any; sort?: 
   if (filters?.dietaryRestrictions?.length) p.set("diets", filters.dietaryRestrictions.join(","));
   if (filters?.cuisines?.length) p.set("cuisines", filters.cuisines.join(","));
   if (filters?.allergens?.length) p.set("allergens_exclude", filters.allergens.join(","));
+  if (filters?.majorConditions?.length) {p.set("major_conditions", filters.majorConditions.join(","));}
 
   // calories range: only send if stricter than [0, 1200]
   const [calMin = 0, calMax = 1200] = Array.isArray(filters?.calories) ? filters.calories : [0, 1200];
@@ -410,6 +411,7 @@ export async function syncHealth(
     onboardingComplete?: boolean | null;
     height?: { value: number; unit: "cm" | "ft" } | string | null;
     weight?: { value: number; unit: "kg" | "lb" } | string | null;
+    majorConditions?: string[] | null;
   },
   appwriteUserId: string
 ) {
@@ -489,4 +491,81 @@ export async function apiGetRecentlyViewed(limit = 20) {
   });
   // backend returns rows like { history: {...}, recipe: {...} }
   return res.json() as Promise<Array<{ history: any; recipe: any }>>;
+}
+
+export type UserProfile = {
+  user_id: string;
+  display_name: string | null;
+  image_url: string | null;
+  phone: string | null;
+  country: string | null;
+  email: string | null;
+  name: string | null;
+  target_calories: number | null;
+  target_protein_g: number | null;
+  target_carbs_g: number | null;
+  target_fat_g: number | null;
+  profile_diets: string[] | null;
+  profile_allergens: string[] | null;
+  preferred_cuisines: string[] | null;
+};
+
+export type HealthProfile = {
+  user_id: string;
+  date_of_birth: string | null; // ISO
+  sex: "male" | "female" | "other" | null;
+  activity_level: string | null;
+  goal: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  height_display: string | null;
+  weight_display: string | null;
+  majorConditions?: string[]; 
+  onboarding_complete: boolean | null;
+  diets: string[] | null;
+  allergens: string[] | null;
+  intolerances: string[] | null;
+  disliked_ingredients: string[] | null;
+};
+
+// --- PROFILE ---
+
+export async function apiGetMyOverview() {
+  const r = await authFetch("/api/v1/me/profile");
+  if (!r.ok) throw new Error(`profile ${r.status}`);
+  return r.json();
+}
+
+export async function apiGetMyHealth() {
+  const r = await authFetch("/api/v1/me/health");
+  if (!r.ok) throw new Error(`health ${r.status}`);
+  return r.json();
+}
+
+export async function apiGetProfile() {
+  return authFetch("/api/v1/me/profile", { method: "GET" });
+}
+
+export async function apiUpdateOverview(body: Partial<UserProfile>) {
+  return authFetch("/api/v1/me/profile", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiUpdateHealth(body: Partial<HealthProfile>) {
+  return authFetch("/api/v1/me/health", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiDeleteProfileRows() {
+  return authFetch("/api/v1/me/profile", { method: "DELETE" });
+}
+
+export async function apiDeleteAccount() {
+  return authFetch("/api/v1/me/account", { method: "DELETE" });
 }

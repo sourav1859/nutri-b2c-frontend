@@ -10,9 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ALL_MAJOR_CONDITIONS } from "@/lib/data"
 import { useToast } from "@/hooks/use-toast"
 
 type Step = 1 | 2 | 3 | 4
+const [conditions, setConditions] = useState<string[]>([]);
+const toggleArray = (arr: string[], val: string) =>
+  arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
 const activityOptions = [
   { value: "sedentary", label: "Sedentary" },
   { value: "lightly_active", label: "Lightly active" },
@@ -95,6 +99,7 @@ export default function HealthOnboardingWizard() {
         ...(diets.length ? { diets } : {}),
         ...(allergens.length ? { allergens } : {}),
         ...(dislikedIngredients.length ? { dislikedIngredients } : {}),
+        ...(conditions.length ? { majorConditions: conditions } : {}),
         // ✅ important: mark onboarding completed
         onboardingComplete: true,
       }
@@ -272,6 +277,24 @@ export default function HealthOnboardingWizard() {
                       size="sm"
                     >
                       {a}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Major Health Conditions</Label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_MAJOR_CONDITIONS.map((c) => (
+                    <Button
+                      key={c}
+                      type="button"
+                      variant={conditions.includes(c) ? "default" : "outline"}
+                      onClick={() => setConditions((arr) => toggleArray(arr, c))}
+                      className="rounded-full"
+                      size="sm"
+                    >
+                      {c}
                     </Button>
                   ))}
                 </div>

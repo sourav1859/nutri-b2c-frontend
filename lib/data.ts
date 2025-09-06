@@ -56,6 +56,26 @@ export const ALL_ALLERGENS: string[] = [
   "none",
 ];
 
+export const ALL_MAJOR_CONDITIONS: string[] = [
+  "Diabetes (Type 1)",
+  "Diabetes (Type 2)",
+  "Hypertension",
+  "High Cholesterol",
+  "Celiac Disease",
+  "Irritable Bowel Syndrome",
+  "GERD/Acid Reflux",
+  "PCOS",
+  "Hypothyroidism",
+  "Hyperthyroidism",
+  "Kidney Disease",
+  "Liver Disease",
+  "Heart Disease",
+  "Gout",
+  "Anemia",
+  "Food Allergy (Other)",
+  "Pregnancy",
+];
+
 /** Loose filter shape to keep callers happy until backend is wired */
 export type SearchFilters = {
   q?: string;
