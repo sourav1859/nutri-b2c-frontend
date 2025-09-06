@@ -158,6 +158,7 @@ export default function HomePage() {
           sodiumMax: filters.sodiumMax,    // ✅ new
           maxTime: filters.maxTime,
           cuisines: filters.cuisines,
+          majorConditions: filters.majorConditions, // ✅ new
           q: filters.q,
         }}
         onApply={handleApply}
