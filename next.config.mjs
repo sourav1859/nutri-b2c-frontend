@@ -3,6 +3,8 @@
 // Prefer NEXT_PUBLIC_API_BASE (so the same value is available in the browser if needed),
 // fall back to API_BASE_URL, then to local dev default.
 const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
   process.env.API_BASE_URL ||
   "http://127.0.0.1:5000"
