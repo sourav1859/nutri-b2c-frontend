@@ -21,7 +21,7 @@ const schema = z.object({
   allergens: z.array(z.string()).default([]),
 
   // [min, max] calories
-  calories: z.tuple([z.number(), z.number()]).default([0, 1000]),
+  calories: z.tuple([z.number(), z.number()]).default([0, 1200]),
 
   proteinMin: z.number().min(0).default(0),
   carbsMin: z.number().min(0).default(0),
@@ -67,6 +67,7 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
     if ((values.dietaryRestrictions || []).length > 0) count++
     if ((values.allergens || []).length > 0) count++
     if ((values.cuisines || []).length > 0) count++
+    if ((values.majorConditions || []).length > 0) count++
     if (values.calories && (values.calories[0] > 0 || values.calories[1] < 1200)) count++
     if ((values.proteinMin || 0) > 0) count++
     if ((values.carbsMin || 0) > 0) count++
@@ -97,6 +98,7 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
       sodiumMax: 4000,
       maxTime: 120,
       cuisines: [],
+      majorConditions: [],
       q: "",
     }
     form.reset(resetValues)

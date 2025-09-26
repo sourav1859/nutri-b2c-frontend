@@ -85,6 +85,7 @@ export default function SearchPage() {
     if (filters.dietaryRestrictions.length > 0) count++
     if (filters.allergens.length > 0) count++
     if (filters.cuisines.length > 0) count++
+    if (filters.majorConditions.length > 0) count++
     if (filters.calories[0] > 0 || filters.calories[1] < 1200) count++
     if (filters.proteinMin > 0) count++
     if (filters.carbsMin > 0) count++

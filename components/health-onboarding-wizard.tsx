@@ -14,7 +14,6 @@ import { ALL_MAJOR_CONDITIONS } from "@/lib/data"
 import { useToast } from "@/hooks/use-toast"
 
 type Step = 1 | 2 | 3 | 4
-const [conditions, setConditions] = useState<string[]>([]);
 const toggleArray = (arr: string[], val: string) =>
   arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
 const activityOptions = [
@@ -52,6 +51,7 @@ export default function HealthOnboardingWizard() {
 
   const [step, setStep] = useState<Step>(1)
   const [saving, setSaving] = useState(false)
+  const [conditions, setConditions] = useState<string[]>([])
 
   // --- form state (accepts whatever the user enters; we normalize on save)
   const [dateOfBirth, setDateOfBirth] = useState<string>("")
@@ -71,8 +71,7 @@ export default function HealthOnboardingWizard() {
     return Math.round(((step - 1) / total) * 100)
   }, [step])
 
-  const toggleArray = (arr: string[], val: string) =>
-    arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]
+  // toggleArray is defined at module scope to avoid re-creation on each render
 
   async function handleFinish() {
     if (!user) return
