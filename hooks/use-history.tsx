@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react"
 import type { Recipe } from "@/lib/types"
 import { apiGetRecentlyViewed, apiLogHistoryView } from "@/lib/api";
+import { useUser } from "@/hooks/use-user";
 
 interface HistoryItem {
   recipeId: string
@@ -21,6 +22,7 @@ interface HistoryContextType {
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined)
 
 export function HistoryProvider({ children }: { children: ReactNode }) {
+  const { isAuthed } = useUser()
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([])
 
@@ -47,9 +49,38 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   historyRef.current = history
 
   const loadRecentRecipes = async () => {
+    if (!isAuthed) {
+      setRecentRecipes([])
+      return
+    }
     try {
       const rows = await apiGetRecentlyViewed(20);
-      const mapped = rows.map(({ recipe }) => ({
+
+      // Dedupe by recipe id and keep the most recent view timestamp if present
+      type Row = { history?: any; recipe?: any };
+      const pickTs = (row: Row): number => {
+        const h: any = row?.history ?? {};
+        const raw =
+          h.viewed_at ?? h.viewedAt ?? h.created_at ?? h.createdAt ?? h.ts ?? h.timestamp ?? null;
+        const t = raw ? new Date(raw).getTime() : 0;
+        return Number.isFinite(t) ? t : 0;
+      };
+
+      const byId = new Map<string, { ts: number; r: any }>();
+      for (const row of rows as Row[]) {
+        const r = (row?.recipe ?? row) as any;
+        const id = r?.id;
+        if (!id) continue;
+        const ts = pickTs(row);
+        const prev = byId.get(id);
+        if (!prev || ts > prev.ts) byId.set(id, { ts, r });
+      }
+
+      const dedupedSorted = Array.from(byId.values())
+        .sort((a, b) => b.ts - a.ts)
+        .map(({ r }) => r);
+
+      const mapped = dedupedSorted.map((recipe: any) => ({
         id: recipe.id,
         title: recipe.title ?? "Untitled",
         imageUrl: recipe.image_url ?? (Array.isArray(recipe.images) ? recipe.images[0] : null),
@@ -64,6 +95,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
           ...(Array.isArray(recipe.flags) ? recipe.flags : []),
         ],
       }));
+
       setRecentRecipes(mapped);
     } catch (e) {
       console.error("Failed to load recent recipes:", e);
@@ -72,12 +104,16 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (!isAuthed) {
+      setRecentRecipes([])
+      return
+    }
     if (history.length > 0) {
       loadRecentRecipes()
     } else {
       setRecentRecipes([])
     }
-  }, [history.length]) // Only depend on history.length to avoid infinite loop
+  }, [history.length, isAuthed]) // include auth state so logout clears safely
 
 const addToHistory = useCallback((entry: string | { id?: string }) => {
   const id = typeof entry === "string" ? entry : entry?.id;
@@ -90,9 +126,11 @@ const addToHistory = useCallback((entry: string | { id?: string }) => {
     return [{ recipeId: id, viewedAt: now }, ...filtered].slice(0, 50);
   });
 
-  // Fire-and-forget server log (string only)
-  void apiLogHistoryView(id);
-}, []);
+  // Fire-and-forget server log only if authed
+  if (isAuthed) {
+    void apiLogHistoryView(id);
+  }
+}, [isAuthed]);
 
   const clearHistory = useCallback(() => {
     setHistory([])

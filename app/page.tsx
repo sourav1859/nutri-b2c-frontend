@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { RecipeCard } from "@/components/recipe-card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { FilterPanel, type FiltersFormValues } from "@/components/filter-panel"
 import { useUser } from "@/hooks/use-user"
 import { cn } from "@/lib/utils"
 import type { Recipe } from "@/lib/types"
+import { useFavorites } from "@/hooks/use-favorites"
 
 const QUICK_FILTERS = [
   { label: "Breakfast", q: "breakfast" },
@@ -25,6 +26,7 @@ export default function HomePage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false) // tied to same panel for simplicity
   const qc = useQueryClient()
+  const { isFavorite, toggleFavorite } = useFavorites()
 
   const queryKey = useMemo(() => ["recipes", filters], [filters])
 
@@ -49,13 +51,12 @@ export default function HomePage() {
     },
   })
 
-  const toggleSave = useMutation({
-    mutationFn: (id: string) => apiToggleSave(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey })
-      qc.invalidateQueries({ queryKey: ["saved"] })
-    },
-  })
+  // Background invalidation helper; do not call apiToggleSave here when using Favorites context,
+  // otherwise you'll double-toggle (save then immediately unsave).
+  const invalidateSaved = useCallback(() => {
+    qc.invalidateQueries({ queryKey })
+    qc.invalidateQueries({ queryKey: ["saved"] })
+  }, [qc, queryKey])
 
   function handleApply(values: FiltersFormValues) {
     setFilters(values)
@@ -133,9 +134,11 @@ export default function HomePage() {
                   cookTime={r.cook_time_minutes ?? undefined}
                   servings={r.servings ?? undefined}
                   difficulty={String(r.difficulty ?? 'easy').toLowerCase() as any}
-                  isSaved={Boolean(r.is_saved ?? r.isSaved)}
+                  // Prefer client-side favorite state; fall back to API flag if present
+                  isSaved={isFavorite(r.id) || Boolean(r.is_saved ?? r.isSaved)}
                   tags={r.diet_tags ?? r.tags ?? []}
-                  onSave={(id) => toggleSave.mutate(id)}
+                  // Use Favorites context to optimistically toggle; then just invalidate queries.
+                  onSave={async (id) => { await toggleFavorite(id); invalidateSaved(); }}
                 />
               );
             })}

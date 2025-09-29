@@ -38,15 +38,8 @@ export default function RecipeDetailPage() {
   const removeFavoriteFn: any =
     favoritesCtx?.remove ?? favoritesCtx?.removeFavorite ?? favoritesCtx?.unsave ?? null
 
-  // History add method can be named differently across drafts; try common variants
-  const addHistoryEntryFn =
-    (typeof historyCtx?.addToHistory === "function" && historyCtx.addToHistory) ||  // <-- add this first
-    (typeof historyCtx?.add === "function" && historyCtx.add) ||
-    (typeof historyCtx?.push === "function" && historyCtx.push) ||
-    (typeof historyCtx?.addEntry === "function" && historyCtx.addEntry) ||
-    (typeof historyCtx?.record === "function" && historyCtx.record) ||
-    (typeof historyCtx?.recordView === "function" && historyCtx.recordView) ||
-    null
+  // Our HistoryProvider exposes addToHistory(id). Keep it single-call to avoid duplicate server logs.
+  const addHistoryEntryFn = typeof historyCtx?.addToHistory === "function" ? historyCtx.addToHistory : null
 
   const {
     data: recipe,
@@ -61,28 +54,8 @@ export default function RecipeDetailPage() {
   const addedToHistoryRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (recipe?.id && historyCtx?.addToHistory) {
-      historyCtx.addToHistory(recipe.id);
-      const imageUrl =
-        (recipe as any)?.image_url ??
-        (Array.isArray((recipe as any)?.images) && (recipe as any).images.length
-          ? (recipe as any).images[0]
-          : null)
-      
-      // Only attempt call if we truly have a function
-      if (typeof addHistoryEntryFn === "function") {
-        const entry = {
-          id: (recipe as any).id,
-          title: (recipe as any).title,
-          image: imageUrl,
-          cookedAt: new Date().toISOString(),
-        }
-        // Some implementations expect an entry object; others just an id
-        try { addHistoryEntryFn(entry) } catch {
-          try { addHistoryEntryFn((recipe as any).id) } catch {}
-        }
-      }
-
+    if (recipe?.id && typeof addHistoryEntryFn === "function") {
+      try { addHistoryEntryFn((recipe as any).id) } catch {}
       addedToHistoryRef.current = (recipe as any).id
     }
     // we deliberately exclude addHistoryEntryFn from deps to avoid re-runs
@@ -191,6 +164,8 @@ export default function RecipeDetailPage() {
         ? (recipe as any).images[0]
         : undefined),
     imageAlt: (recipe as any)?.title ?? "Recipe image",
+    // Use Favorites context for current saved state to ensure the heart reflects immediately.
+    isSaved: isFavorite((recipe as any).id),
   };
 
   return (
