@@ -13,11 +13,9 @@ import type { Recipe } from "@/lib/types"
 import { useFavorites } from "@/hooks/use-favorites"
 
 const QUICK_FILTERS = [
-  { label: "Breakfast", q: "breakfast" },
-  { label: "Lunch", q: "lunch" },
-  { label: "Dinner", q: "dinner" },
-  { label: "Vegan", q: "vegan", diet: "Vegan" },
-  { label: "Keto", q: "keto", diet: "Keto" },
+  { label: "Breakfast", mealType: "breakfast" },
+  { label: "Lunch", mealType: "lunch" },
+  { label: "Dinner", mealType: "dinner" },
 ]
 
 export default function HomePage() {
@@ -43,7 +41,8 @@ export default function HomePage() {
         filters.proteinMin > 0 ||
         filters.carbsMin > 0 ||
         filters.fatMin > 0 ||
-        filters.maxTime < 120
+        filters.maxTime < 120 ||
+        !!filters.mealType
       if (hasAny) {
         return apiSearchRecipes({ q: filters.q, filters })
       }
@@ -63,10 +62,7 @@ export default function HomePage() {
   }
 
   function handleQuickFilterClick(item: (typeof QUICK_FILTERS)[number]) {
-    const next = { ...filters, q: item.q }
-    if (item.diet) {
-      next.dietaryRestrictions = [item.diet]
-    }
+    const next = { ...filters, q: "", dietaryRestrictions: [], mealType: (item as any).mealType }
     setFilters(next)
   }
 
@@ -81,7 +77,7 @@ export default function HomePage() {
               key={f.label}
               className={cn(
                 "rounded-full border px-3 py-1 text-sm hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                filters.q === f.q ? "bg-accent" : undefined,
+                (filters.mealType as any) === (f as any).mealType ? "bg-accent" : undefined,
               )}
               onClick={() => handleQuickFilterClick(f)}
             >
@@ -163,6 +159,7 @@ export default function HomePage() {
           cuisines: filters.cuisines,
           majorConditions: filters.majorConditions, // ✅ new
           q: filters.q,
+          mealType: (filters.mealType as any) || "",
         }}
         onApply={handleApply}
         onReset={() => resetFilters()}

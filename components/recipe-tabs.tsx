@@ -10,7 +10,7 @@ import type { Recipe, Nutrition } from "@/lib/types"
 
 // ----- local types & helpers -----
 
-type Ingr = { amount: string; unit: string; name: string }
+type Ingr = { amount: string | number | null; unit: string | null; name: string }
 
 function num(x: unknown, fallback = 0): number {
   const n = Number(x as any)
@@ -78,13 +78,20 @@ function normalizeNutrition(recipe: any): Nutrition {
 // ----- components -----
 
 function Ingredients({ ingredients = [] as any[] }) {
-  const toIngr = (i: any): Ingr => (typeof i === "string" ? { amount: "", unit: "", name: i } : i)
-  const items = ingredients.map(toIngr)
+  const toIngr = (i: any): Ingr => {
+    if (typeof i === "string") return { amount: "", unit: "", name: i }
+    // Accept multiple shapes: {qty, unit, item}, {amount, unit, name}, {quantity, measure, ingredient}, {text}
+    const amount = i?.amount ?? i?.qty ?? i?.quantity ?? i?.value ?? null
+    const unit = i?.unit ?? i?.measure ?? null
+    const name = i?.name ?? i?.item ?? i?.ingredient ?? i?.text ?? ""
+    return { amount, unit, name }
+  }
+  const items = (Array.isArray(ingredients) ? ingredients : []).map(toIngr)
   return (
     <ol className="list-decimal pl-6 space-y-2 text-sm">
       {items.map((ing, i) => (
         <li key={i}>
-          {ing.amount} {ing.unit} {ing.name}
+          {ing.amount ? `${ing.amount} ` : ""}{ing.unit ? `${ing.unit} ` : ""}{ing.name}
         </li>
       ))}
     </ol>
@@ -103,10 +110,13 @@ export function RecipeTabs({ recipe }: { recipe: Recipe }) {
     [recipe]
   )
 
-  const instructions: string[] =
-    (Array.isArray((recipe as any)?.instructions) ? (recipe as any)?.instructions : []).filter(
-      Boolean
-    )
+  const instructions: string[] = (
+    Array.isArray((recipe as any)?.instructions) ? (recipe as any)?.instructions : []
+  )
+    .slice()
+    .sort((a: any, b: any) => (Number(a?.order) || 0) - (Number(b?.order) || 0))
+    .map((s: any) => (typeof s === "string" ? s : s?.text ?? s?.step ?? ""))
+    .filter((s: any) => typeof s === "string" && s.trim().length > 0)
 
   return (
     <Tabs defaultValue="overview" className="w-full">

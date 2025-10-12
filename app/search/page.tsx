@@ -36,7 +36,6 @@ const POPULAR_SEARCHES = [
   "Low carb dinner",
   "Quick breakfast",
   "Healthy snacks",
-  "Keto recipes",
 ]
 
 export default function SearchPage() {
@@ -76,7 +75,8 @@ export default function SearchPage() {
       filters.fiberMin > 0 ||
       filters.sugarMax < 100 ||
       filters.sodiumMax < 4000 ||
-      filters.maxTime < 120
+      filters.maxTime < 120 ||
+      !!filters.mealType
     )
   }, [filters])
 
@@ -94,6 +94,7 @@ export default function SearchPage() {
     if (filters.sugarMax < 100) count++
     if (filters.sodiumMax < 4000) count++
     if (filters.maxTime < 120) count++
+    if (filters.mealType) count++
     return count
   }, [filters])
 

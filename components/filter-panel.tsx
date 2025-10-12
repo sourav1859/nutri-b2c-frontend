@@ -35,6 +35,8 @@ const schema = z.object({
   cuisines: z.array(z.string()).default([]),
   majorConditions: z.array(z.string()).default([]),
   q: z.string().default(""),
+  // meal type: '' means not set; otherwise one of 'breakfast','lunch','dinner','snack'
+  mealType: z.string().default(""),
 })
 
 // IMPORTANT: use the schema's INPUT type for the form, OUTPUT type for apply()
@@ -76,6 +78,7 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
     if ((values.sugarMax || 100) < 100) count++
     if ((values.sodiumMax || 4000) < 4000) count++
     if ((values.maxTime || 120) < 120) count++
+    if ((values.mealType || "") !== "") count++
     return count
   }
 
@@ -100,6 +103,7 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
       cuisines: [],
       majorConditions: [],
       q: "",
+      mealType: "",
     }
     form.reset(resetValues)
     onReset()
@@ -113,6 +117,7 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
   const watchSugar = form.watch("sugarMax") || 100
   const watchSodium = form.watch("sodiumMax") || 4000
   const watchMaxTime = form.watch("maxTime") || 120
+  const watchMealType = form.watch("mealType") || ""
 
   const activeFiltersCount = getActiveFiltersCount()
 
@@ -385,6 +390,34 @@ export function FilterPanel({ open, onOpenChange, initialValues, onApply, onRese
                 value={form.watch("cuisines") || []}
                 onChange={(next) => form.setValue("cuisines", next)}
               />
+            </section>
+
+            <Separator />
+
+            {/* Meal Type */}
+            <section>
+              <h3 className="font-semibold mb-3">Meal Type</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: "breakfast", label: "Breakfast" },
+                  { key: "lunch", label: "Lunch" },
+                  { key: "dinner", label: "Dinner" },
+                  { key: "snack", label: "Snack" },
+                ].map((opt) => {
+                  const checked = watchMealType === opt.key
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      className={`rounded border px-3 py-2 text-left ${checked ? 'bg-accent' : ''}`}
+                      onClick={() => form.setValue('mealType', checked ? '' : opt.key)}
+                      aria-pressed={checked}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
             </section>
           </div>
         </div>

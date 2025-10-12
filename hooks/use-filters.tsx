@@ -31,6 +31,9 @@ export type Filters = {
   sodiumMax: number               // mg
   maxTime: number                 // minutes
 
+  // New: meal type filter (breakfast, lunch, dinner, snack)
+  mealType?: string | null
+
   // Optional / legacy
   tab?: Tab
   customerTag?: string | null
@@ -63,6 +66,7 @@ const DEFAULTS: Filters = {
   sugarMax: 100,
   sodiumMax: 4000,
   maxTime: 120,        // page treats <120 as "active"
+  mealType: null,
   tab: "recipes",
   customerTag: null,
 }

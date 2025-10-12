@@ -124,10 +124,10 @@ export default function RecipeDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container px-4 py-6 max-w-4xl">
+      <div className="mx-auto w-full max-w-6xl lg:max-w-7xl px-4 py-8">
         <div className="space-y-6">
           <div className="h-8 w-40 bg-muted rounded" />
-          <div className="h-64 w-full bg-muted rounded" />
+          <div className="h-64 md:h-80 lg:h-96 w-full bg-muted rounded" />
           <div className="h-10 w-56 bg-muted rounded" />
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function RecipeDetailPage() {
 
   if (error || !recipe) {
     return (
-      <div className="container px-4 py-6 max-w-4xl">
+      <div className="mx-auto w-full max-w-6xl lg:max-w-7xl px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <Button onClick={() => router.back()} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -169,16 +169,16 @@ export default function RecipeDetailPage() {
   };
 
   return (
-    <div className="container px-4 py-6 max-w-4xl">
+    <div className="mx-auto w-full max-w-6xl lg:max-w-7xl px-4 py-8">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-8">
         <Button variant="ghost" onClick={() => router.back()} className="pl-0">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to recipes
         </Button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-10">
         {/* Recipe Hero */}
         <RecipeHero recipe={heroRecipe} onToggleSave={() => toggleSave.mutate()} onShare={handleShare} />
 
@@ -186,7 +186,7 @@ export default function RecipeDetailPage() {
         <RecipeTabs recipe={recipe as any} />
 
         {/* Start Cooking Button */}
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-6">
           <Button size="lg" onClick={() => setCookingOpen(true)}>
             Start Cooking
           </Button>

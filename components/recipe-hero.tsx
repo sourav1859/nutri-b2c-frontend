@@ -40,6 +40,12 @@ const cookMinutes =
     0
   );
 
+  // Unified display values (fallback to legacy props if minutes missing)
+  const prepDisplayMin = prepMinutes || Number((recipe as any)?.prepTime ?? 0) || 0;
+  const cookDisplayMin = cookMinutes || Number((recipe as any)?.cookTime ?? 0) || 0;
+  const servings = Number((recipe as any)?.servings ?? 1);
+  const difficulty = String((recipe as any)?.difficulty ?? "easy");
+
   return (
     <div className="space-y-4">
       {/* Hero Image */}
@@ -75,9 +81,13 @@ const cookMinutes =
       </div>
 
       {/* Recipe Title and Description */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold leading-tight">{recipe.title}</h1>
-        {recipe.description && <p className="text-muted-foreground text-lg leading-relaxed">{recipe.description}</p>}
+      <div className="space-y-3">
+        <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight">{recipe.title}</h1>
+        {recipe.description && (
+          <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-3xl">
+            {recipe.description}
+          </p>
+        )}
       </div>
 
       {/* Rating and Reviews */}
@@ -98,34 +108,34 @@ const cookMinutes =
         </div>
       )}
 
-      {/* Recipe Metadata */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="flex items-center gap-2 text-sm">
-          <Clock className="h-4 w-4 text-muted-foreground" />
+      {/* Recipe Metadata (aligned label/value) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 p-6 bg-muted/50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <Clock className="h-5 w-5 text-muted-foreground" />
           <div>
-            <div className="font-medium">{prepMinutes} Prep Time</div>
-            <div className="text-muted-foreground">{recipe.prepTime}m</div>
+            <div className="text-xs text-muted-foreground">Prep Time</div>
+            <div className="font-medium leading-tight">{prepDisplayMin} m</div>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Clock className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <Clock className="h-5 w-5 text-muted-foreground" />
           <div>
-            <div className="font-medium">{cookMinutes} Cook Time</div>
-            <div className="text-muted-foreground">{recipe.cookTime}m</div>
+            <div className="text-xs text-muted-foreground">Cook Time</div>
+            <div className="font-medium leading-tight">{cookDisplayMin} m</div>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Users className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <Users className="h-5 w-5 text-muted-foreground" />
           <div>
-            <div className="font-medium">Servings</div>
-            <div className="text-muted-foreground">{recipe.servings}</div>
+            <div className="text-xs text-muted-foreground">Servings</div>
+            <div className="font-medium leading-tight">{servings}</div>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <ChefHat className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <ChefHat className="h-5 w-5 text-muted-foreground" />
           <div>
-            <div className="font-medium">Difficulty</div>
-            <div className="text-muted-foreground capitalize">{recipe.difficulty}</div>
+            <div className="text-xs text-muted-foreground">Difficulty</div>
+            <div className="font-medium leading-tight capitalize">{difficulty}</div>
           </div>
         </div>
       </div>

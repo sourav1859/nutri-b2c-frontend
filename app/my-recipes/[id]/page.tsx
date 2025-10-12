@@ -74,7 +74,7 @@ export default function MyRecipeDetailPage() {
   if (!recipe)   return <div className="p-6">Recipe not found.</div>
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
+    <div className="mx-auto w-full max-w-6xl lg:max-w-7xl px-4 py-8 space-y-10">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -82,7 +82,7 @@ export default function MyRecipeDetailPage() {
         </Button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-10">
         {/* Same hero as public detail page */}
         <RecipeHero recipe={heroRecipe} onToggleSave={() => {}} onShare={handleShare} />
 
@@ -90,7 +90,7 @@ export default function MyRecipeDetailPage() {
         <RecipeTabs recipe={recipe as any} />
 
         {/* Same Start Cooking button */}
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-6">
           <Button size="lg" onClick={() => setCookingOpen(true)}>
             Start Cooking
           </Button>
