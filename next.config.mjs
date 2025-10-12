@@ -1,13 +1,19 @@
 // next.config.mjs
 
-// Prefer NEXT_PUBLIC_API_BASE (so the same value is available in the browser if needed),
-// fall back to API_BASE_URL, then to local dev default.
-const API_BASE = (
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
+// Prefer NEXT_PUBLIC_API_BASE_URL (so the same value is available in the browser if needed),
+// then NEXT_PUBLIC_API_BASE, then API_BASE_URL. If a hostname is provided without scheme,
+// normalize to https:// (Vercel requires destination to start with http/https or /).
+const RAW_BASE = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
   process.env.API_BASE_URL ||
-  "http://127.0.0.1:5000"
+  ""
+).trim();
+
+const API_BASE = (
+  RAW_BASE
+    ? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `https://${RAW_BASE}`)
+    : "http://127.0.0.1:5000"
 ).replace(/\/+$/, "");
 
 /** @type {import('next').NextConfig} */

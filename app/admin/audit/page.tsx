@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { listAudit, type AuditEntry } from "@/lib/admin/audit"
 
+export const dynamic = 'force-dynamic'
+
 export default function AdminAuditPage() {
   const [entries, setEntries] = useState<AuditEntry[]>([])
 

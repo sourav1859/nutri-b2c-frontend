@@ -221,7 +221,10 @@ export default function SearchPage() {
               <FilterPanel
                 open={filtersOpen}
                 onOpenChange={setFiltersOpen}
-                initialValues={filters}
+                initialValues={{
+                  ...filters,
+                  mealType: (filters.mealType as any) || "",
+                }}
                 onApply={(values) => setFilters(values)}
                 onReset={resetFilters}
               />
