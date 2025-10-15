@@ -16,6 +16,10 @@ const API_BASE = (
     : "http://127.0.0.1:5000"
 ).replace(/\/+$/, "");
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -30,6 +34,13 @@ const nextConfig = {
   // (Optional) keep these strict; flip to true only if you intentionally want to ship with lints/TS errors.
   eslint: { ignoreDuringBuilds: false },
   typescript: { ignoreBuildErrors: false },
+  webpack(config) {
+    // Ensure '@' alias works in all environments (CI/build included)
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
+    config.resolve.alias['@'] = path.resolve(__dirname);
+    return config;
+  },
 };
 
 export default nextConfig;
