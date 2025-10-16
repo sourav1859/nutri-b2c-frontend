@@ -159,6 +159,7 @@ export default function RecipeDetailPage() {
   const heroRecipe = {
     ...(recipe as any),
     imageUrl:
+      (recipe as any)?.imageUrl ??
       (recipe as any)?.image_url ??
       (Array.isArray((recipe as any)?.images) && (recipe as any).images.length
         ? (recipe as any).images[0]

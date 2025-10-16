@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Clock, Users, ChefHat, Heart, Share2, Star } from "lucide-react"
 import type { Recipe } from "@/lib/types"
+import { DEFAULT_RECIPE_IMAGE } from "@/lib/constants"
 
 interface RecipeHeroProps {
   recipe: Recipe
@@ -16,7 +17,7 @@ interface RecipeHeroProps {
 export function RecipeHero({ recipe, onToggleSave, onShare }: RecipeHeroProps) {
   const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0)
   const title = recipe.title ?? "Untitled"
-  const src = recipe.imageUrl || "/placeholder.svg?height=720&width=1280&query=recipe%20hero"
+  const src = DEFAULT_RECIPE_IMAGE
   const imageAlt = recipe.imageAlt ?? recipe.title ?? "Recipe image";
   const rating = "rating" in recipe ? (recipe as any).rating ?? 0 : 0;
   const reviewCount =
@@ -51,7 +52,7 @@ const cookMinutes =
       {/* Hero Image */}
       <div className="relative w-full">
         <Image
-          src={src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/") ? src : "/placeholder.svg"}
+          src={src}
           alt={imageAlt ?? title}
           width={1280}
           height={720}

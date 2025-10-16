@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Clock, Flame, Soup, Heart, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Difficulty } from "@/lib/types"
+import { DEFAULT_RECIPE_IMAGE } from "@/lib/constants"
 
 export type RecipeCardProps = {
   id: string
@@ -48,7 +49,7 @@ export function RecipeCard({
       <Link href={linkHref} prefetch={false} className="block">
         <div className="relative aspect-[16/9] w-full overflow-hidden">
           <Image
-            src={imageUrl || "/placeholder.svg?height=360&width=640&query=recipe%20image"}
+            src={DEFAULT_RECIPE_IMAGE}
             alt={title}
             fill
             className="object-cover transition-transform duration-300 motion-reduce:transition-none group-hover:scale-105"
