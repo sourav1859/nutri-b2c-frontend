@@ -1,5 +1,7 @@
 // app/api/v1/me/saved/route.ts
-const API_BASE = (process.env.API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
+const API_BASE = (
+  process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:5000"
+).replace(/\/+$/, "");
 
 export async function GET(req: Request) {
   const jwt = req.headers.get("x-appwrite-jwt") || "";
